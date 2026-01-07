@@ -1,0 +1,49 @@
+# .env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+.eslintcache
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output
+
+# Docker
+docker-compose.override.yml
+
+# Secrets (never commit these!)
+*.pem
+*.key
+*.p12
+secrets/

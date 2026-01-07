@@ -1,0 +1,103 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: eu-vat-ease
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/euvatease}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:dev@localhost}
+    password: ${SMTP_PASSWORD:dev-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Shopify Configuration
+shopify:
+  api-key: ${SHOPIFY_API_KEY:dev-api-key}
+  api-secret: ${SHOPIFY_API_SECRET:dev-api-secret}
+  scopes: read_orders,read_customers,read_products,write_products
+  redirect-uri: ${SHOPIFY_REDIRECT_URI:http://localhost:8080/api/shopify/callback}
+  webhook-secret: ${SHOPIFY_WEBHOOK_SECRET:dev-webhook-secret}
+  app-url: ${SHOPIFY_APP_URL:http://localhost:8080}
+
+# VIES Configuration
+vies:
+  wsdl-url: https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl
+  timeout: 30000
+  retry-attempts: 3
+  retry-delay: 1000
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-key-minimum-256-bits-for-hs256-algorithm}
+  expiration: 86400000
+
+# App Configuration
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  encryption-key: ${ENCRYPTION_KEY:dev-encryption-key-32chars!}
+  dev-mode: ${DEV_MODE:true}
+  
+# OSS Thresholds
+oss:
+  threshold-amount: 10000
+  alert-percentage: 80
+
+# Billing
+billing:
+  monthly-price: 99.00
+  yearly-price: 999.00
+  currency: EUR
+  trial-days: 14
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.euvatease: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

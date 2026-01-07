@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50; margin: 0;">EU VAT Ease</h1>
+            <p style="color: #7f8c8d; margin-top: 5px;">Votre assistant TVA UE</p>
+        </div>
+
+        <!-- Alert Banner -->
+        <div th:style="${severity == 'CRITICAL' ? 'background-color: #e74c3c;' : (severity == 'ERROR' ? 'background-color: #e67e22;' : (severity == 'WARNING' ? 'background-color: #f39c12;' : 'background-color: #3498db;'))} + 'color: white; padding: 15px; border-radius: 6px; margin-bottom: 20px;'">
+            <h2 style="margin: 0;" th:text="${alertTitle}">Titre de l'alerte</h2>
+        </div>
+
+        <!-- Content -->
+        <div style="color: #2c3e50; line-height: 1.6;">
+            <p>Bonjour <span th:text="${shopName}">Nom de la boutique</span>,</p>
+            
+            <p th:text="${alertMessage}">Message de l'alerte</p>
+
+            <div th:if="${actionRequired}" style="background-color: #ecf0f1; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <strong>Action recommandée :</strong>
+                <p style="margin: 10px 0 0 0;" th:text="${actionRequired}">Action à effectuer</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a th:href="${dashboardUrl}" 
+                   style="display: inline-block; background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    Accéder au tableau de bord
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1; text-align: center; color: #95a5a6; font-size: 12px;">
+            <p>Cet email a été envoyé automatiquement par EU VAT Ease.</p>
+            <p>Pour modifier vos préférences de notification, rendez-vous dans les paramètres de votre compte.</p>
+            <p>© 2024 EU VAT Ease. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>

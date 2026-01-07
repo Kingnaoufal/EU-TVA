@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50;">🎉 Bienvenue sur EU VAT Ease !</h1>
+        </div>
+
+        <p>Bonjour <span th:text="${shopName}">Nom de la boutique</span>,</p>
+
+        <p>Merci d'avoir choisi EU VAT Ease pour simplifier votre gestion de la TVA européenne !</p>
+
+        <div style="background-color: #e8f4fd; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="color: #2980b9; margin-top: 0;">Votre période d'essai gratuite</h3>
+            <p>Profitez de <strong>14 jours gratuits</strong> pour découvrir toutes les fonctionnalités :</p>
+            <ul>
+                <li>✅ Analyse automatique de vos ventes UE</li>
+                <li>✅ Détection des erreurs de TVA</li>
+                <li>✅ Validation des numéros de TVA (VIES)</li>
+                <li>✅ Génération des rapports OSS</li>
+                <li>✅ Alertes personnalisées</li>
+            </ul>
+            <p>Votre essai se termine le : <strong th:text="${#temporals.format(trialEndDate, 'dd/MM/yyyy')}">Date</strong></p>
+        </div>
+
+        <h3>Premiers pas</h3>
+        <ol>
+            <li><strong>Consultez votre tableau de bord</strong> pour voir un aperçu de votre situation TVA</li>
+            <li><strong>Configurez votre numéro de TVA</strong> et votre statut OSS dans les paramètres</li>
+            <li><strong>Synchronisez vos commandes</strong> pour une analyse complète</li>
+        </ol>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a th:href="${dashboardUrl}" 
+               style="display: inline-block; background-color: #27ae60; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Accéder à mon tableau de bord
+            </a>
+        </div>
+
+        <p>Des questions ? Notre équipe est là pour vous aider à support@euvatease.com</p>
+
+        <p>À très bientôt,<br>L'équipe EU VAT Ease</p>
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1; text-align: center; color: #95a5a6; font-size: 12px;">
+            <p>© 2024 EU VAT Ease. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>
