@@ -5,20 +5,37 @@ import com.euvatease.dto.VatValidationResult;
 import com.euvatease.entity.Order;
 import com.euvatease.entity.Shop;
 import com.euvatease.entity.VatAlert;
-import com.euvatease.repository.*;
-import com.euvatease.service.*;
+import com.euvatease.repository.OrderRepository;
+import com.euvatease.repository.ShopRepository;
+import com.euvatease.repository.VatAlertRepository;
+import com.euvatease.repository.VatValidationRepository;
+import com.euvatease.service.ShopifyBillingService;
+import com.euvatease.service.ShopifyService;
+import com.euvatease.service.VatCalculationService;
+import com.euvatease.service.ViesValidationService;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -28,37 +45,131 @@ import java.util.stream.Collectors;
 @RequestMapping("/vat")
 public class VatController {
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Static fields/initializers
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     private static final Logger log = LoggerFactory.getLogger(VatController.class);
 
-    private final ShopRepository shopRepository;
-    private final OrderRepository orderRepository;
-    private final VatAlertRepository vatAlertRepository;
-    private final VatValidationRepository vatValidationRepository;
-    private final VatCalculationService vatCalculationService;
-    private final ViesValidationService viesValidationService;
-    private final ShopifyService shopifyService;
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
     private final ShopifyBillingService billingService;
 
-    public VatController(ShopRepository shopRepository, OrderRepository orderRepository,
-                         VatAlertRepository vatAlertRepository, VatValidationRepository vatValidationRepository,
-                         VatCalculationService vatCalculationService, ViesValidationService viesValidationService,
-                         ShopifyService shopifyService, ShopifyBillingService billingService) {
-        this.shopRepository = shopRepository;
-        this.orderRepository = orderRepository;
-        this.vatAlertRepository = vatAlertRepository;
-        this.vatValidationRepository = vatValidationRepository;
-        this.vatCalculationService = vatCalculationService;
-        this.viesValidationService = viesValidationService;
-        this.shopifyService = shopifyService;
-        this.billingService = billingService;
+    @Nonnull
+    private final OrderRepository orderRepository;
+
+    @Nonnull
+    private final ShopifyService shopifyService;
+
+    @Nonnull
+    private final ShopRepository shopRepository;
+
+    @Nonnull
+    private final VatAlertRepository vatAlertRepository;
+
+    @Nonnull
+    private final VatCalculationService vatCalculationService;
+
+    @Nonnull
+    private final VatValidationRepository vatValidationRepository;
+
+    @Nonnull
+    private final ViesValidationService viesValidationService;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public VatController(@Nonnull ShopRepository shopRepository,
+                         @Nonnull OrderRepository orderRepository,
+                         @Nonnull VatAlertRepository vatAlertRepository,
+                         @Nonnull VatValidationRepository vatValidationRepository,
+                         @Nonnull VatCalculationService vatCalculationService,
+                         @Nonnull ViesValidationService viesValidationService,
+                         @Nonnull ShopifyService shopifyService,
+                         @Nonnull ShopifyBillingService billingService) {
+        this.shopRepository = Objects.requireNonNull(shopRepository, "shopRepository must not be null");
+        this.orderRepository = Objects.requireNonNull(orderRepository, "orderRepository must not be null");
+        this.vatAlertRepository = Objects.requireNonNull(vatAlertRepository, "vatAlertRepository must not be null");
+        this.vatValidationRepository = Objects.requireNonNull(vatValidationRepository, "vatValidationRepository must not be null");
+        this.vatCalculationService = Objects.requireNonNull(vatCalculationService, "vatCalculationService must not be null");
+        this.viesValidationService = Objects.requireNonNull(viesValidationService, "viesValidationService must not be null");
+        this.shopifyService = Objects.requireNonNull(shopifyService, "shopifyService must not be null");
+        this.billingService = Objects.requireNonNull(billingService, "billingService must not be null");
+    }
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Analyse d'une commande spécifique
+     * POST /api/vat/orders/{orderId}/analyze
+     */
+    @Nonnull
+    @PostMapping("/orders/{orderId}/analyze")
+    public ResponseEntity<?> analyzeOrder(
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @PathVariable String orderId) {
+
+        return orderRepository.findByShopAndShopifyOrderId(shop, orderId)
+            .map(order -> {
+                VatAnalysisResult result = vatCalculationService.analyzeOrder(order);
+                return ResponseEntity.ok(result);
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Analyse TVA complète pour une période
+     * POST /api/vat/analyze
+     */
+    @Nonnull
+    @PostMapping("/analyze")
+    public ResponseEntity<?> analyzeVat(
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @RequestBody Map<String, String> request) {
+
+        LocalDateTime start = LocalDateTime.parse(request.get("startDate"));
+        LocalDateTime end = LocalDateTime.parse(request.get("endDate"));
+
+        Map<String, Object> analysis = vatCalculationService.analyzeShopVat(shop, start, end);
+
+        return ResponseEntity.ok(analysis);
+    }
+
+    /**
+     * Liste des alertes
+     * GET /api/vat/alerts
+     */
+    @Nonnull
+    @GetMapping("/alerts")
+    public ResponseEntity<?> getAlerts(
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        var alerts = vatAlertRepository.findByShopOrderByCreatedAtDesc(shop,
+            PageRequest.of(page, size));
+
+        return ResponseEntity.ok(Map.of(
+            "content", alerts.getContent().stream().map(this::mapAlert).collect(Collectors.toList()),
+            "totalElements", alerts.getTotalElements(),
+            "totalPages", alerts.getTotalPages(),
+            "unreadCount", vatAlertRepository.countUnreadAlerts(shop)
+        ));
     }
 
     /**
      * Tableau de bord principal
      * GET /api/vat/dashboard
      */
+    @Nonnull
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@RequestAttribute("shop") Shop shop) {
+    public ResponseEntity<?> getDashboard(@Nonnull @RequestAttribute("shop") Shop shop) {
         try {
             Map<String, Object> dashboard = new HashMap<>();
 
@@ -144,32 +255,48 @@ public class VatController {
     }
 
     /**
+     * Détail d'une commande
+     * GET /api/vat/orders/{orderId}
+     */
+    @Nonnull
+    @GetMapping("/orders/{orderId}")
+    public ResponseEntity<?> getOrderDetail(
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @PathVariable String orderId) {
+
+        return orderRepository.findByShopAndShopifyOrderId(shop, orderId)
+            .map(order -> ResponseEntity.ok(mapOrder(order)))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * Liste des commandes avec pagination et filtres
      * GET /api/vat/orders
      */
+    @Nonnull
     @GetMapping("/orders")
     public ResponseEntity<?> getOrders(
-            @RequestAttribute("shop") Shop shop,
+            @Nonnull @RequestAttribute("shop") Shop shop,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) Boolean hasErrors,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
-        
+            @Nullable @RequestParam(required = false) Boolean hasErrors,
+            @Nullable @RequestParam(required = false) String startDate,
+            @Nullable @RequestParam(required = false) String endDate) {
+
         try {
             PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate"));
             Page<Order> ordersPage;
-            
+
             if (hasErrors != null && hasErrors) {
                 ordersPage = orderRepository.findByShopAndHasVatErrorTrue(shop, pageRequest);
             } else {
                 ordersPage = orderRepository.findByShop(shop, pageRequest);
             }
-            
+
             List<Map<String, Object>> orders = ordersPage.getContent().stream()
                 .map(this::mapOrder)
                 .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(Map.of(
                 "content", orders,
                 "totalElements", ordersPage.getTotalElements(),
@@ -185,106 +312,15 @@ public class VatController {
             ));
         }
     }
-    
-    /**
-     * Détail d'une commande
-     * GET /api/vat/orders/{orderId}
-     */
-    @GetMapping("/orders/{orderId}")
-    public ResponseEntity<?> getOrderDetail(
-            @RequestAttribute("shop") Shop shop,
-            @PathVariable String orderId) {
-        
-        return orderRepository.findByShopAndShopifyOrderId(shop, orderId)
-            .map(order -> ResponseEntity.ok(mapOrder(order)))
-            .orElse(ResponseEntity.notFound().build());
-    }
-    
-    /**
-     * Analyse d'une commande spécifique
-     * POST /api/vat/orders/{orderId}/analyze
-     */
-    @PostMapping("/orders/{orderId}/analyze")
-    public ResponseEntity<?> analyzeOrder(
-            @RequestAttribute("shop") Shop shop,
-            @PathVariable String orderId) {
-        
-        return orderRepository.findByShopAndShopifyOrderId(shop, orderId)
-            .map(order -> {
-                VatAnalysisResult result = vatCalculationService.analyzeOrder(order);
-                return ResponseEntity.ok(result);
-            })
-            .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * Analyse TVA complète pour une période
-     * POST /api/vat/analyze
-     */
-    @PostMapping("/analyze")
-    public ResponseEntity<?> analyzeVat(
-            @RequestAttribute("shop") Shop shop,
-            @RequestBody Map<String, String> request) {
-
-        LocalDateTime start = LocalDateTime.parse(request.get("startDate"));
-        LocalDateTime end = LocalDateTime.parse(request.get("endDate"));
-
-        Map<String, Object> analysis = vatCalculationService.analyzeShopVat(shop, start, end);
-
-        return ResponseEntity.ok(analysis);
-    }
-
-    /**
-     * Liste des commandes avec erreurs de TVA
-     * GET /api/vat/errors
-     */
-    @GetMapping("/errors")
-    public ResponseEntity<?> getVatErrors(
-            @RequestAttribute("shop") Shop shop,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-
-        Page<Order> errors = orderRepository.findByShopAndHasVatErrorTrue(shop, 
-            PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate")));
-
-        return ResponseEntity.ok(Map.of(
-            "content", errors.getContent().stream().map(this::mapOrder).collect(Collectors.toList()),
-            "totalElements", errors.getTotalElements(),
-            "totalPages", errors.getTotalPages(),
-            "currentPage", page
-        ));
-    }
-
-    /**
-     * Valide un numéro de TVA
-     * POST /api/vat/validate
-     */
-    @PostMapping("/validate")
-    public ResponseEntity<?> validateVatNumber(
-            @RequestAttribute("shop") Shop shop,
-            @RequestBody Map<String, String> request) {
-
-        String vatNumber = request.get("vatNumber");
-        String orderId = request.get("orderId");
-
-        if (vatNumber == null || vatNumber.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", "Numéro de TVA requis"
-            ));
-        }
-
-        VatValidationResult result = viesValidationService.validateVatNumber(shop, vatNumber, orderId);
-
-        return ResponseEntity.ok(result);
-    }
 
     /**
      * Historique des validations TVA
      * GET /api/vat/validations
      */
+    @Nonnull
     @GetMapping("/validations")
     public ResponseEntity<?> getValidations(
-            @RequestAttribute("shop") Shop shop,
+            @Nonnull @RequestAttribute("shop") Shop shop,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -308,32 +344,44 @@ public class VatController {
     }
 
     /**
-     * Liste des alertes
-     * GET /api/vat/alerts
+     * Liste des commandes avec erreurs de TVA
+     * GET /api/vat/errors
      */
-    @GetMapping("/alerts")
-    public ResponseEntity<?> getAlerts(
-            @RequestAttribute("shop") Shop shop,
+    @Nonnull
+    @GetMapping("/errors")
+    public ResponseEntity<?> getVatErrors(
+            @Nonnull @RequestAttribute("shop") Shop shop,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        var alerts = vatAlertRepository.findByShopOrderByCreatedAtDesc(shop,
-            PageRequest.of(page, size));
+        Page<Order> errors = orderRepository.findByShopAndHasVatErrorTrue(shop,
+            PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate")));
 
         return ResponseEntity.ok(Map.of(
-            "content", alerts.getContent().stream().map(this::mapAlert).collect(Collectors.toList()),
-            "totalElements", alerts.getTotalElements(),
-            "totalPages", alerts.getTotalPages(),
-            "unreadCount", vatAlertRepository.countUnreadAlerts(shop)
+            "content", errors.getContent().stream().map(this::mapOrder).collect(Collectors.toList()),
+            "totalElements", errors.getTotalElements(),
+            "totalPages", errors.getTotalPages(),
+            "currentPage", page
         ));
+    }
+
+    /**
+     * Taux de TVA UE
+     * GET /api/vat/rates
+     */
+    @Nonnull
+    @GetMapping("/rates")
+    public ResponseEntity<?> getVatRates() {
+        return ResponseEntity.ok(vatCalculationService.getAllEuVatRates());
     }
 
     /**
      * Marque toutes les alertes comme lues
      * POST /api/vat/alerts/read-all
      */
+    @Nonnull
     @PostMapping("/alerts/read-all")
-    public ResponseEntity<?> markAlertsAsRead(@RequestAttribute("shop") Shop shop) {
+    public ResponseEntity<?> markAlertsAsRead(@Nonnull @RequestAttribute("shop") Shop shop) {
         int updated = vatAlertRepository.markAllAsRead(shop);
         return ResponseEntity.ok(Map.of("updated", updated));
     }
@@ -342,10 +390,11 @@ public class VatController {
      * Résout une alerte
      * POST /api/vat/alerts/{id}/resolve
      */
+    @Nonnull
     @PostMapping("/alerts/{id}/resolve")
     public ResponseEntity<?> resolveAlert(
-            @RequestAttribute("shop") Shop shop,
-            @PathVariable Long id) {
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @PathVariable Long id) {
 
         return vatAlertRepository.findById(id)
             .filter(a -> a.getShop().getId().equals(shop.getId()))
@@ -359,22 +408,14 @@ public class VatController {
     }
 
     /**
-     * Taux de TVA UE
-     * GET /api/vat/rates
-     */
-    @GetMapping("/rates")
-    public ResponseEntity<?> getVatRates() {
-        return ResponseEntity.ok(vatCalculationService.getAllEuVatRates());
-    }
-
-    /**
      * Synchronise les commandes depuis Shopify
      * POST /api/vat/sync
      */
+    @Nonnull
     @PostMapping("/sync")
     public ResponseEntity<?> syncOrders(
-            @RequestAttribute("shop") Shop shop,
-            @RequestBody(required = false) Map<String, String> request) {
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nullable @RequestBody(required = false) Map<String, String> request) {
 
         LocalDateTime since = null;
         if (request != null && request.containsKey("since")) {
@@ -396,10 +437,11 @@ public class VatController {
      * Met à jour les paramètres de la boutique
      * PUT /api/vat/settings
      */
+    @Nonnull
     @PutMapping("/settings")
     public ResponseEntity<?> updateSettings(
-            @RequestAttribute("shop") Shop shop,
-            @RequestBody Map<String, Object> settings) {
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @RequestBody Map<String, Object> settings) {
 
         if (settings.containsKey("vatNumber")) {
             shop.setVatNumber((String) settings.get("vatNumber"));
@@ -419,43 +461,34 @@ public class VatController {
         return ResponseEntity.ok(Map.of("message", "Paramètres mis à jour"));
     }
 
-    // Méthodes utilitaires
+    /**
+     * Valide un numéro de TVA
+     * POST /api/vat/validate
+     */
+    @Nonnull
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateVatNumber(
+            @Nonnull @RequestAttribute("shop") Shop shop,
+            @Nonnull @RequestBody Map<String, String> request) {
 
-    private Map<String, Object> mapOrder(Order order) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", order.getId());
-        map.put("shopifyOrderId", order.getShopifyOrderId());
-        map.put("orderNumber", order.getOrderNumber());
-        map.put("orderDate", order.getOrderDate());
-        map.put("customerCountry", order.getCustomerCountryCode());
-        map.put("totalAmount", order.getTotalAmount());
-        map.put("taxAmount", order.getTaxAmount());
-        map.put("appliedVatRate", order.getAppliedVatRate());
-        map.put("expectedVatRate", order.getExpectedVatRate());
-        map.put("vatDifference", order.getVatDifference());
-        map.put("hasVatError", order.getHasVatError());
-        map.put("vatErrorType", order.getVatErrorType());
-        map.put("isB2b", order.getIsB2b());
-        map.put("vatExempt", order.getVatExempt());
-        return map;
+        String vatNumber = request.get("vatNumber");
+        String orderId = request.get("orderId");
+
+        if (vatNumber == null || vatNumber.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Numéro de TVA requis"
+            ));
+        }
+
+        VatValidationResult result = viesValidationService.validateVatNumber(shop, vatNumber, orderId);
+
+        return ResponseEntity.ok(result);
     }
 
-    private Map<String, Object> mapAlert(VatAlert alert) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", alert.getId());
-        map.put("type", alert.getAlertType());
-        map.put("severity", alert.getSeverity());
-        map.put("title", alert.getTitle());
-        map.put("message", alert.getMessage());
-        map.put("actionRequired", alert.getActionRequired());
-        map.put("isRead", alert.getIsRead());
-        map.put("isResolved", alert.getIsResolved());
-        map.put("createdAt", alert.getCreatedAt());
-        map.put("icon", alert.getSeverityIcon());
-        return map;
-    }
-
-    private Map<String, Object> generateStatusMessage(long vatErrors, int criticalAlerts, Map<String, Object> ossThreshold) {
+    @Nonnull
+    private Map<String, Object> generateStatusMessage(long vatErrors,
+                                                      int criticalAlerts,
+                                                      @Nonnull Map<String, Object> ossThreshold) {
         Map<String, Object> status = new HashMap<>();
 
         if (criticalAlerts > 0) {
@@ -477,5 +510,41 @@ public class VatController {
         }
 
         return status;
+    }
+
+    @Nonnull
+    private Map<String, Object> mapAlert(@Nonnull VatAlert alert) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", alert.getId());
+        map.put("type", alert.getAlertType());
+        map.put("severity", alert.getSeverity());
+        map.put("title", alert.getTitle());
+        map.put("message", alert.getMessage());
+        map.put("actionRequired", alert.getActionRequired());
+        map.put("isRead", alert.getIsRead());
+        map.put("isResolved", alert.getIsResolved());
+        map.put("createdAt", alert.getCreatedAt());
+        map.put("icon", alert.getSeverityIcon());
+        return map;
+    }
+
+    @Nonnull
+    private Map<String, Object> mapOrder(@Nonnull Order order) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", order.getId());
+        map.put("shopifyOrderId", order.getShopifyOrderId());
+        map.put("orderNumber", order.getOrderNumber());
+        map.put("orderDate", order.getOrderDate());
+        map.put("customerCountry", order.getCustomerCountryCode());
+        map.put("totalAmount", order.getTotalAmount());
+        map.put("taxAmount", order.getTaxAmount());
+        map.put("appliedVatRate", order.getAppliedVatRate());
+        map.put("expectedVatRate", order.getExpectedVatRate());
+        map.put("vatDifference", order.getVatDifference());
+        map.put("hasVatError", order.getHasVatError());
+        map.put("vatErrorType", order.getVatErrorType());
+        map.put("isB2b", order.getIsB2b());
+        map.put("vatExempt", order.getVatExempt());
+        return map;
     }
 }

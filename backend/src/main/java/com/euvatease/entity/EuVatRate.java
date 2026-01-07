@@ -1,12 +1,25 @@
 package com.euvatease.entity;
 
-import jakarta.persistence.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "eu_vat_rates")
 public class EuVatRate {
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,11 +54,24 @@ public class EuVatRate {
     @Column(name = "effective_to")
     private LocalDate effectiveTo;
 
-    public EuVatRate() {}
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    public EuVatRate(Long id, String countryCode, String countryName, BigDecimal standardRate,
-                     BigDecimal reducedRate, BigDecimal reducedRate2, BigDecimal superReducedRate,
-                     BigDecimal parkingRate, Boolean isEuMember, LocalDate effectiveFrom, LocalDate effectiveTo) {
+    public EuVatRate() {
+    }
+
+    public EuVatRate(@Nullable Long id,
+                     @Nonnull String countryCode,
+                     @Nonnull String countryName,
+                     @Nonnull BigDecimal standardRate,
+                     @Nullable BigDecimal reducedRate,
+                     @Nullable BigDecimal reducedRate2,
+                     @Nullable BigDecimal superReducedRate,
+                     @Nullable BigDecimal parkingRate,
+                     @Nullable Boolean isEuMember,
+                     @Nonnull LocalDate effectiveFrom,
+                     @Nullable LocalDate effectiveTo) {
         this.id = id;
         this.countryCode = countryCode;
         this.countryName = countryName;
@@ -59,36 +85,120 @@ public class EuVatRate {
         this.effectiveTo = effectiveTo;
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public String getCountryCode() { return countryCode; }
-    public String getCountryName() { return countryName; }
-    public BigDecimal getStandardRate() { return standardRate; }
-    public BigDecimal getReducedRate() { return reducedRate; }
-    public BigDecimal getReducedRate2() { return reducedRate2; }
-    public BigDecimal getSuperReducedRate() { return superReducedRate; }
-    public BigDecimal getParkingRate() { return parkingRate; }
-    public Boolean getIsEuMember() { return isEuMember; }
-    public LocalDate getEffectiveFrom() { return effectiveFrom; }
-    public LocalDate getEffectiveTo() { return effectiveTo; }
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
-    public void setCountryName(String countryName) { this.countryName = countryName; }
-    public void setStandardRate(BigDecimal standardRate) { this.standardRate = standardRate; }
-    public void setReducedRate(BigDecimal reducedRate) { this.reducedRate = reducedRate; }
-    public void setReducedRate2(BigDecimal reducedRate2) { this.reducedRate2 = reducedRate2; }
-    public void setSuperReducedRate(BigDecimal superReducedRate) { this.superReducedRate = superReducedRate; }
-    public void setParkingRate(BigDecimal parkingRate) { this.parkingRate = parkingRate; }
-    public void setIsEuMember(Boolean isEuMember) { this.isEuMember = isEuMember; }
-    public void setEffectiveFrom(LocalDate effectiveFrom) { this.effectiveFrom = effectiveFrom; }
-    public void setEffectiveTo(LocalDate effectiveTo) { this.effectiveTo = effectiveTo; }
+    @Nonnull
+    public static EuVatRateBuilder builder() {
+        return new EuVatRateBuilder();
+    }
 
-    // Builder
-    public static EuVatRateBuilder builder() { return new EuVatRateBuilder(); }
+    @Nullable
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(@Nullable Long id) {
+        this.id = id;
+    }
+
+    @Nonnull
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(@Nonnull String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    @Nonnull
+    public String getCountryName() {
+        return countryName;
+    }
+
+    public void setCountryName(@Nonnull String countryName) {
+        this.countryName = countryName;
+    }
+
+    @Nonnull
+    public BigDecimal getStandardRate() {
+        return standardRate;
+    }
+
+    public void setStandardRate(@Nonnull BigDecimal standardRate) {
+        this.standardRate = standardRate;
+    }
+
+    @Nullable
+    public BigDecimal getReducedRate() {
+        return reducedRate;
+    }
+
+    public void setReducedRate(@Nullable BigDecimal reducedRate) {
+        this.reducedRate = reducedRate;
+    }
+
+    @Nullable
+    public BigDecimal getReducedRate2() {
+        return reducedRate2;
+    }
+
+    public void setReducedRate2(@Nullable BigDecimal reducedRate2) {
+        this.reducedRate2 = reducedRate2;
+    }
+
+    @Nullable
+    public BigDecimal getSuperReducedRate() {
+        return superReducedRate;
+    }
+
+    public void setSuperReducedRate(@Nullable BigDecimal superReducedRate) {
+        this.superReducedRate = superReducedRate;
+    }
+
+    @Nullable
+    public BigDecimal getParkingRate() {
+        return parkingRate;
+    }
+
+    public void setParkingRate(@Nullable BigDecimal parkingRate) {
+        this.parkingRate = parkingRate;
+    }
+
+    @Nullable
+    public Boolean getIsEuMember() {
+        return isEuMember;
+    }
+
+    public void setIsEuMember(@Nullable Boolean isEuMember) {
+        this.isEuMember = isEuMember;
+    }
+
+    @Nonnull
+    public LocalDate getEffectiveFrom() {
+        return effectiveFrom;
+    }
+
+    public void setEffectiveFrom(@Nonnull LocalDate effectiveFrom) {
+        this.effectiveFrom = effectiveFrom;
+    }
+
+    @Nullable
+    public LocalDate getEffectiveTo() {
+        return effectiveTo;
+    }
+
+    public void setEffectiveTo(@Nullable LocalDate effectiveTo) {
+        this.effectiveTo = effectiveTo;
+    }
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Nested Classes
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public static class EuVatRateBuilder {
+
         private Long id;
         private String countryCode;
         private String countryName;
@@ -101,18 +211,73 @@ public class EuVatRate {
         private LocalDate effectiveFrom;
         private LocalDate effectiveTo;
 
-        public EuVatRateBuilder id(Long id) { this.id = id; return this; }
-        public EuVatRateBuilder countryCode(String countryCode) { this.countryCode = countryCode; return this; }
-        public EuVatRateBuilder countryName(String countryName) { this.countryName = countryName; return this; }
-        public EuVatRateBuilder standardRate(BigDecimal standardRate) { this.standardRate = standardRate; return this; }
-        public EuVatRateBuilder reducedRate(BigDecimal reducedRate) { this.reducedRate = reducedRate; return this; }
-        public EuVatRateBuilder reducedRate2(BigDecimal reducedRate2) { this.reducedRate2 = reducedRate2; return this; }
-        public EuVatRateBuilder superReducedRate(BigDecimal superReducedRate) { this.superReducedRate = superReducedRate; return this; }
-        public EuVatRateBuilder parkingRate(BigDecimal parkingRate) { this.parkingRate = parkingRate; return this; }
-        public EuVatRateBuilder isEuMember(Boolean isEuMember) { this.isEuMember = isEuMember; return this; }
-        public EuVatRateBuilder effectiveFrom(LocalDate effectiveFrom) { this.effectiveFrom = effectiveFrom; return this; }
-        public EuVatRateBuilder effectiveTo(LocalDate effectiveTo) { this.effectiveTo = effectiveTo; return this; }
+        @Nonnull
+        public EuVatRateBuilder id(@Nullable Long id) {
+            this.id = id;
+            return this;
+        }
 
+        @Nonnull
+        public EuVatRateBuilder countryCode(@Nonnull String countryCode) {
+            this.countryCode = countryCode;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder countryName(@Nonnull String countryName) {
+            this.countryName = countryName;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder standardRate(@Nonnull BigDecimal standardRate) {
+            this.standardRate = standardRate;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder reducedRate(@Nullable BigDecimal reducedRate) {
+            this.reducedRate = reducedRate;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder reducedRate2(@Nullable BigDecimal reducedRate2) {
+            this.reducedRate2 = reducedRate2;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder superReducedRate(@Nullable BigDecimal superReducedRate) {
+            this.superReducedRate = superReducedRate;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder parkingRate(@Nullable BigDecimal parkingRate) {
+            this.parkingRate = parkingRate;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder isEuMember(@Nullable Boolean isEuMember) {
+            this.isEuMember = isEuMember;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder effectiveFrom(@Nonnull LocalDate effectiveFrom) {
+            this.effectiveFrom = effectiveFrom;
+            return this;
+        }
+
+        @Nonnull
+        public EuVatRateBuilder effectiveTo(@Nullable LocalDate effectiveTo) {
+            this.effectiveTo = effectiveTo;
+            return this;
+        }
+
+        @Nonnull
         public EuVatRate build() {
             return new EuVatRate(id, countryCode, countryName, standardRate, reducedRate, reducedRate2,
                     superReducedRate, parkingRate, isEuMember, effectiveFrom, effectiveTo);

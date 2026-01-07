@@ -1,12 +1,32 @@
 package com.euvatease.entity;
 
-import jakarta.persistence.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entity representing a line item in an OSS (One-Stop Shop) VAT report.
+ * Each line contains VAT information for a specific country and rate.
+ */
 @Entity
 @Table(name = "oss_report_lines")
 public class OssReportLine {
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,12 +66,25 @@ public class OssReportLine {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     public OssReportLine() {
     }
 
-    public OssReportLine(Long id, OssReport report, String countryCode, String countryName, BigDecimal vatRate,
-                         BigDecimal taxableAmount, BigDecimal vatAmount, BigDecimal totalAmount, Integer ordersCount,
-                         BigDecimal b2cAmount, BigDecimal b2bExemptAmount, LocalDateTime createdAt) {
+    public OssReportLine(@Nullable Long id,
+                         @Nonnull OssReport report,
+                         @Nonnull String countryCode,
+                         @Nullable String countryName,
+                         @Nonnull BigDecimal vatRate,
+                         @Nullable BigDecimal taxableAmount,
+                         @Nullable BigDecimal vatAmount,
+                         @Nullable BigDecimal totalAmount,
+                         @Nullable Integer ordersCount,
+                         @Nullable BigDecimal b2cAmount,
+                         @Nullable BigDecimal b2bExemptAmount,
+                         @Nullable LocalDateTime createdAt) {
         this.id = id;
         this.report = report;
         this.countryCode = countryCode;
@@ -66,43 +99,138 @@ public class OssReportLine {
         this.createdAt = createdAt;
     }
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Lifecycle methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public OssReport getReport() { return report; }
-    public String getCountryCode() { return countryCode; }
-    public String getCountryName() { return countryName; }
-    public BigDecimal getVatRate() { return vatRate; }
-    public BigDecimal getTaxableAmount() { return taxableAmount; }
-    public BigDecimal getVatAmount() { return vatAmount; }
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public Integer getOrdersCount() { return ordersCount; }
-    public BigDecimal getB2cAmount() { return b2cAmount; }
-    public BigDecimal getB2bExemptAmount() { return b2bExemptAmount; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Getters/Setters
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setReport(OssReport report) { this.report = report; }
-    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
-    public void setCountryName(String countryName) { this.countryName = countryName; }
-    public void setVatRate(BigDecimal vatRate) { this.vatRate = vatRate; }
-    public void setTaxableAmount(BigDecimal taxableAmount) { this.taxableAmount = taxableAmount; }
-    public void setVatAmount(BigDecimal vatAmount) { this.vatAmount = vatAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
-    public void setOrdersCount(Integer ordersCount) { this.ordersCount = ordersCount; }
-    public void setB2cAmount(BigDecimal b2cAmount) { this.b2cAmount = b2cAmount; }
-    public void setB2bExemptAmount(BigDecimal b2bExemptAmount) { this.b2bExemptAmount = b2bExemptAmount; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    @Nullable
+    public Long getId() {
+        return id;
+    }
 
-    // Builder
-    public static OssReportLineBuilder builder() { return new OssReportLineBuilder(); }
+    public void setId(@Nullable Long id) {
+        this.id = id;
+    }
+
+    @Nonnull
+    public OssReport getReport() {
+        return report;
+    }
+
+    public void setReport(@Nonnull OssReport report) {
+        this.report = report;
+    }
+
+    @Nonnull
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(@Nonnull String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    @Nullable
+    public String getCountryName() {
+        return countryName;
+    }
+
+    public void setCountryName(@Nullable String countryName) {
+        this.countryName = countryName;
+    }
+
+    @Nonnull
+    public BigDecimal getVatRate() {
+        return vatRate;
+    }
+
+    public void setVatRate(@Nonnull BigDecimal vatRate) {
+        this.vatRate = vatRate;
+    }
+
+    @Nullable
+    public BigDecimal getTaxableAmount() {
+        return taxableAmount;
+    }
+
+    public void setTaxableAmount(@Nullable BigDecimal taxableAmount) {
+        this.taxableAmount = taxableAmount;
+    }
+
+    @Nullable
+    public BigDecimal getVatAmount() {
+        return vatAmount;
+    }
+
+    public void setVatAmount(@Nullable BigDecimal vatAmount) {
+        this.vatAmount = vatAmount;
+    }
+
+    @Nullable
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(@Nullable BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    @Nullable
+    public Integer getOrdersCount() {
+        return ordersCount;
+    }
+
+    public void setOrdersCount(@Nullable Integer ordersCount) {
+        this.ordersCount = ordersCount;
+    }
+
+    @Nullable
+    public BigDecimal getB2cAmount() {
+        return b2cAmount;
+    }
+
+    public void setB2cAmount(@Nullable BigDecimal b2cAmount) {
+        this.b2cAmount = b2cAmount;
+    }
+
+    @Nullable
+    public BigDecimal getB2bExemptAmount() {
+        return b2bExemptAmount;
+    }
+
+    public void setB2bExemptAmount(@Nullable BigDecimal b2bExemptAmount) {
+        this.b2bExemptAmount = b2bExemptAmount;
+    }
+
+    @Nullable
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(@Nullable LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Inner Classes
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    public static OssReportLineBuilder builder() {
+        return new OssReportLineBuilder();
+    }
 
     public static class OssReportLineBuilder {
+
         private Long id;
         private OssReport report;
         private String countryCode;
@@ -116,19 +244,79 @@ public class OssReportLine {
         private BigDecimal b2bExemptAmount;
         private LocalDateTime createdAt;
 
-        public OssReportLineBuilder id(Long id) { this.id = id; return this; }
-        public OssReportLineBuilder report(OssReport report) { this.report = report; return this; }
-        public OssReportLineBuilder countryCode(String countryCode) { this.countryCode = countryCode; return this; }
-        public OssReportLineBuilder countryName(String countryName) { this.countryName = countryName; return this; }
-        public OssReportLineBuilder vatRate(BigDecimal vatRate) { this.vatRate = vatRate; return this; }
-        public OssReportLineBuilder taxableAmount(BigDecimal taxableAmount) { this.taxableAmount = taxableAmount; return this; }
-        public OssReportLineBuilder vatAmount(BigDecimal vatAmount) { this.vatAmount = vatAmount; return this; }
-        public OssReportLineBuilder totalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; return this; }
-        public OssReportLineBuilder ordersCount(Integer ordersCount) { this.ordersCount = ordersCount; return this; }
-        public OssReportLineBuilder b2cAmount(BigDecimal b2cAmount) { this.b2cAmount = b2cAmount; return this; }
-        public OssReportLineBuilder b2bExemptAmount(BigDecimal b2bExemptAmount) { this.b2bExemptAmount = b2bExemptAmount; return this; }
-        public OssReportLineBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        @Nonnull
+        public OssReportLineBuilder id(@Nullable Long id) {
+            this.id = id;
+            return this;
+        }
 
+        @Nonnull
+        public OssReportLineBuilder report(@Nonnull OssReport report) {
+            this.report = report;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder countryCode(@Nonnull String countryCode) {
+            this.countryCode = countryCode;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder countryName(@Nullable String countryName) {
+            this.countryName = countryName;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder vatRate(@Nonnull BigDecimal vatRate) {
+            this.vatRate = vatRate;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder taxableAmount(@Nullable BigDecimal taxableAmount) {
+            this.taxableAmount = taxableAmount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder vatAmount(@Nullable BigDecimal vatAmount) {
+            this.vatAmount = vatAmount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder totalAmount(@Nullable BigDecimal totalAmount) {
+            this.totalAmount = totalAmount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder ordersCount(@Nullable Integer ordersCount) {
+            this.ordersCount = ordersCount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder b2cAmount(@Nullable BigDecimal b2cAmount) {
+            this.b2cAmount = b2cAmount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder b2bExemptAmount(@Nullable BigDecimal b2bExemptAmount) {
+            this.b2bExemptAmount = b2bExemptAmount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportLineBuilder createdAt(@Nullable LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        @Nonnull
         public OssReportLine build() {
             return new OssReportLine(id, report, countryCode, countryName, vatRate, taxableAmount, vatAmount,
                     totalAmount, ordersCount, b2cAmount, b2bExemptAmount, createdAt);

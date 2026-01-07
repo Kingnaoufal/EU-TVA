@@ -5,6 +5,8 @@ import com.euvatease.repository.ShopRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,42 +24,73 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
+/**
+ * Filtre d'authentification JWT pour valider les tokens et établir le contexte de sécurité.
+ * Gère également l'injection d'une boutique de test en mode développement.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Static fields/initializers
+    //~ ----------------------------------------------------------------------------------------------------------------
 
+    private static final Logger LOG = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+    private static final String DEV_SHOP_DOMAIN = "dev-shop.myshopify.com";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int BEARER_PREFIX_LENGTH = 7;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
     private final ShopRepository shopRepository;
-
-    public JwtAuthenticationFilter(ShopRepository shopRepository) {
-        this.shopRepository = shopRepository;
-    }
 
     @Value("${jwt.secret}")
     private String jwtSecret;
-    
+
     @Value("${app.dev-mode:false}")
     private boolean devMode;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-        // Get path relative to context path (removes /api prefix)
-        String path = request.getRequestURI();
-        String contextPath = request.getContextPath();
-        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
-            path = path.substring(contextPath.length());
-        }
-        
+    /**
+     * Constructeur avec injection du repository de boutiques.
+     *
+     * @param shopRepository le repository pour accéder aux boutiques (non null)
+     */
+    public JwtAuthenticationFilter(@Nonnull ShopRepository shopRepository) {
+        this.shopRepository = Objects.requireNonNull(shopRepository, "shopRepository must not be null");
+    }
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Override
+    protected void doFilterInternal(@Nonnull HttpServletRequest request,
+                                    @Nonnull HttpServletResponse response,
+                                    @Nonnull FilterChain filterChain)
+            throws ServletException, IOException {
+        Objects.requireNonNull(request, "request must not be null");
+        Objects.requireNonNull(response, "response must not be null");
+        Objects.requireNonNull(filterChain, "filterChain must not be null");
+
+        String path = extractPath(request);
+
         // DEV MODE: Inject a test shop for development
         if (devMode && isDevEndpoint(path)) {
             injectDevShop(request);
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         // Skip les endpoints publics
         if (isPublicEndpoint(path)) {
             filterChain.doFilter(request, response);
@@ -65,14 +98,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String authHeader = request.getHeader("Authorization");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        processJwtAuthentication(request, authHeader);
+        filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Extrait le chemin de la requête en retirant le context path.
+     *
+     * @param request la requête HTTP
+     * @return le chemin relatif
+     */
+    @Nonnull
+    private String extractPath(@Nonnull HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        return path;
+    }
+
+    /**
+     * Traite l'authentification JWT à partir du header Authorization.
+     *
+     * @param request    la requête HTTP
+     * @param authHeader le header d'autorisation
+     */
+    private void processJwtAuthentication(@Nonnull HttpServletRequest request,
+                                          @Nonnull String authHeader) {
         try {
-            String token = authHeader.substring(7);
+            String token = authHeader.substring(BEARER_PREFIX_LENGTH);
             Claims claims = Jwts.parser()
                 .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
                 .build()
@@ -80,7 +141,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .getPayload();
 
             String shopDomain = claims.getSubject();
-            
+
             Shop shop = shopRepository.findByShopifyDomain(shopDomain)
                 .orElseThrow(() -> new RuntimeException("Boutique non trouvée"));
 
@@ -101,54 +162,81 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
-            log.error("Erreur authentification JWT: {}", e.getMessage());
+            LOG.error("Erreur authentification JWT: {}", e.getMessage());
             SecurityContextHolder.clearContext();
         }
-
-        filterChain.doFilter(request, response);
     }
-    
-    private void injectDevShop(HttpServletRequest request) {
-        // Try to get existing dev shop from DB, or create and save one
-        Shop shop = shopRepository.findByShopifyDomain("dev-shop.myshopify.com")
-            .orElseGet(() -> {
-                log.info("DEV MODE: Creating test shop in database");
-                Shop devShop = new Shop();
-                devShop.setShopifyDomain("dev-shop.myshopify.com");
-                devShop.setShopName("Dev Test Shop");
-                devShop.setEmail("dev@test.com");
-                devShop.setCountryCode("FR");
-                devShop.setCurrency("EUR");
-                devShop.setOssRegistered(true);
-                devShop.setSubscriptionStatus(Shop.SubscriptionStatus.ACTIVE);
-                devShop.setSubscriptionPlan("monthly");
-                devShop.setIsActive(true);
-                devShop.setTrialEndsAt(LocalDateTime.now().plusDays(14));
-                devShop.setCreatedAt(LocalDateTime.now());
-                // Save to database to get a valid ID
-                return shopRepository.save(devShop);
-            });
-        
+
+    /**
+     * Injecte une boutique de test pour le mode développement.
+     *
+     * @param request la requête HTTP
+     */
+    private void injectDevShop(@Nonnull HttpServletRequest request) {
+        Shop shop = shopRepository.findByShopifyDomain(DEV_SHOP_DOMAIN)
+            .orElseGet(this::createDevShop);
+
         request.setAttribute("shop", shop);
-        
+
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
             shop.getShopifyDomain(),
             null,
             List.of(new SimpleGrantedAuthority("ROLE_SHOP"))
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        log.debug("DEV MODE: Injected test shop {}", shop.getShopifyDomain());
+
+        LOG.debug("DEV MODE: Injected test shop {}", shop.getShopifyDomain());
     }
-    
-    private boolean isDevEndpoint(String path) {
+
+    /**
+     * Crée une nouvelle boutique de développement.
+     *
+     * @return la boutique créée et sauvegardée
+     */
+    @Nonnull
+    private Shop createDevShop() {
+        LOG.info("DEV MODE: Creating test shop in database");
+        Shop devShop = new Shop();
+        devShop.setShopifyDomain(DEV_SHOP_DOMAIN);
+        devShop.setShopName("Dev Test Shop");
+        devShop.setEmail("dev@test.com");
+        devShop.setCountryCode("FR");
+        devShop.setCurrency("EUR");
+        devShop.setOssRegistered(true);
+        devShop.setSubscriptionStatus(Shop.SubscriptionStatus.ACTIVE);
+        devShop.setSubscriptionPlan("monthly");
+        devShop.setIsActive(true);
+        devShop.setTrialEndsAt(LocalDateTime.now().plusDays(14));
+        devShop.setCreatedAt(LocalDateTime.now());
+        return shopRepository.save(devShop);
+    }
+
+    /**
+     * Vérifie si le chemin correspond à un endpoint de développement.
+     *
+     * @param path le chemin à vérifier
+     * @return true si c'est un endpoint de développement
+     */
+    private boolean isDevEndpoint(@Nullable String path) {
+        if (path == null) {
+            return false;
+        }
         return path.startsWith("/vat") ||
                path.startsWith("/vies") ||
                path.startsWith("/oss") ||
                path.startsWith("/orders");
     }
 
-    private boolean isPublicEndpoint(String path) {
+    /**
+     * Vérifie si le chemin correspond à un endpoint public.
+     *
+     * @param path le chemin à vérifier
+     * @return true si c'est un endpoint public
+     */
+    private boolean isPublicEndpoint(@Nullable String path) {
+        if (path == null) {
+            return false;
+        }
         return path.startsWith("/shopify/install") ||
                path.startsWith("/shopify/callback") ||
                path.startsWith("/shopify/auth") ||

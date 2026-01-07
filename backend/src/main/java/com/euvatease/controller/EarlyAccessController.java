@@ -1,11 +1,24 @@
 package com.euvatease.controller;
 
-import jakarta.persistence.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Contrôleur pour l'accès anticipé (landing page)
@@ -14,14 +27,35 @@ import java.util.Map;
 @RequestMapping("/early-access")
 public class EarlyAccessController {
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
     private final EarlyAccessSignupRepository signupRepository;
 
-    public EarlyAccessController(EarlyAccessSignupRepository signupRepository) {
-        this.signupRepository = signupRepository;
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public EarlyAccessController(@Nonnull EarlyAccessSignupRepository signupRepository) {
+        this.signupRepository = Objects.requireNonNull(signupRepository, "signupRepository must not be null");
     }
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    @GetMapping("/count")
+    public ResponseEntity<?> getSignupCount() {
+        long count = signupRepository.count();
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    @Nonnull
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody EarlyAccessSignupRequest request) {
+    public ResponseEntity<?> signup(@Nonnull @RequestBody EarlyAccessSignupRequest request) {
         // Vérifier si l'email existe déjà
         if (signupRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.ok(Map.of(
@@ -48,67 +82,139 @@ public class EarlyAccessController {
                        "Surveillez votre boîte mail pour des offres exclusives early adopters."
         ));
     }
-
-    @GetMapping("/count")
-    public ResponseEntity<?> getSignupCount() {
-        long count = signupRepository.count();
-        return ResponseEntity.ok(Map.of("count", count));
-    }
 }
 
 class EarlyAccessSignupRequest {
-    private String email;
-    private String shopUrl;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nullable
     private String country;
+
+    @Nullable
+    private String email;
+
+    @Nullable
+    private String shopUrl;
+
+    @Nullable
     private String source;
-    private String utmSource;
-    private String utmMedium;
+
+    @Nullable
     private String utmCampaign;
+
+    @Nullable
+    private String utmMedium;
+
+    @Nullable
+    private String utmSource;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public EarlyAccessSignupRequest() {}
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getShopUrl() { return shopUrl; }
-    public void setShopUrl(String shopUrl) { this.shopUrl = shopUrl; }
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nullable
     public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
+
+    @Nullable
+    public String getEmail() { return email; }
+
+    @Nullable
+    public String getShopUrl() { return shopUrl; }
+
+    @Nullable
     public String getSource() { return source; }
-    public void setSource(String source) { this.source = source; }
-    public String getUtmSource() { return utmSource; }
-    public void setUtmSource(String utmSource) { this.utmSource = utmSource; }
-    public String getUtmMedium() { return utmMedium; }
-    public void setUtmMedium(String utmMedium) { this.utmMedium = utmMedium; }
+
+    @Nullable
     public String getUtmCampaign() { return utmCampaign; }
-    public void setUtmCampaign(String utmCampaign) { this.utmCampaign = utmCampaign; }
+
+    @Nullable
+    public String getUtmMedium() { return utmMedium; }
+
+    @Nullable
+    public String getUtmSource() { return utmSource; }
+
+    public void setCountry(@Nullable String country) { this.country = country; }
+
+    public void setEmail(@Nullable String email) { this.email = email; }
+
+    public void setShopUrl(@Nullable String shopUrl) { this.shopUrl = shopUrl; }
+
+    public void setSource(@Nullable String source) { this.source = source; }
+
+    public void setUtmCampaign(@Nullable String utmCampaign) { this.utmCampaign = utmCampaign; }
+
+    public void setUtmMedium(@Nullable String utmMedium) { this.utmMedium = utmMedium; }
+
+    public void setUtmSource(@Nullable String utmSource) { this.utmSource = utmSource; }
 }
 
 @Entity
 @Table(name = "early_access_signups")
 class EarlyAccessSignup {
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nullable
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Nullable
+    private String country;
+
+    @Nullable
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Nullable
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String email;
-
+    @Nullable
     private String shopUrl;
-    private String country;
+
+    @Nullable
     private String source;
-    private String utmSource;
-    private String utmMedium;
-    private String utmCampaign;
+
+    @Nullable
     private Boolean subscribed = true;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Nullable
+    private String utmCampaign;
+
+    @Nullable
+    private String utmMedium;
+
+    @Nullable
+    private String utmSource;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public EarlyAccessSignup() {}
 
-    public EarlyAccessSignup(Long id, String email, String shopUrl, String country, String source,
-                             String utmSource, String utmMedium, String utmCampaign, Boolean subscribed,
-                             LocalDateTime createdAt) {
+    public EarlyAccessSignup(@Nullable Long id,
+                             @Nullable String email,
+                             @Nullable String shopUrl,
+                             @Nullable String country,
+                             @Nullable String source,
+                             @Nullable String utmSource,
+                             @Nullable String utmMedium,
+                             @Nullable String utmCampaign,
+                             @Nullable Boolean subscribed,
+                             @Nullable LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
         this.shopUrl = shopUrl;
@@ -121,68 +227,150 @@ class EarlyAccessSignup {
         this.createdAt = createdAt;
     }
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    public static EarlyAccessSignupBuilder builder() { return new EarlyAccessSignupBuilder(); }
+
+    @Nullable
+    public String getCountry() { return country; }
+
+    @Nullable
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    @Nullable
+    public String getEmail() { return email; }
+
+    @Nullable
+    public Long getId() { return id; }
+
+    @Nullable
+    public String getShopUrl() { return shopUrl; }
+
+    @Nullable
+    public String getSource() { return source; }
+
+    @Nullable
+    public Boolean getSubscribed() { return subscribed; }
+
+    @Nullable
+    public String getUtmCampaign() { return utmCampaign; }
+
+    @Nullable
+    public String getUtmMedium() { return utmMedium; }
+
+    @Nullable
+    public String getUtmSource() { return utmSource; }
+
+    public void setCountry(@Nullable String country) { this.country = country; }
+
+    public void setCreatedAt(@Nullable LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public void setEmail(@Nullable String email) { this.email = email; }
+
+    public void setId(@Nullable Long id) { this.id = id; }
+
+    public void setShopUrl(@Nullable String shopUrl) { this.shopUrl = shopUrl; }
+
+    public void setSource(@Nullable String source) { this.source = source; }
+
+    public void setSubscribed(@Nullable Boolean subscribed) { this.subscribed = subscribed; }
+
+    public void setUtmCampaign(@Nullable String utmCampaign) { this.utmCampaign = utmCampaign; }
+
+    public void setUtmMedium(@Nullable String utmMedium) { this.utmMedium = utmMedium; }
+
+    public void setUtmSource(@Nullable String utmSource) { this.utmSource = utmSource; }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public String getShopUrl() { return shopUrl; }
-    public String getCountry() { return country; }
-    public String getSource() { return source; }
-    public String getUtmSource() { return utmSource; }
-    public String getUtmMedium() { return utmMedium; }
-    public String getUtmCampaign() { return utmCampaign; }
-    public Boolean getSubscribed() { return subscribed; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setEmail(String email) { this.email = email; }
-    public void setShopUrl(String shopUrl) { this.shopUrl = shopUrl; }
-    public void setCountry(String country) { this.country = country; }
-    public void setSource(String source) { this.source = source; }
-    public void setUtmSource(String utmSource) { this.utmSource = utmSource; }
-    public void setUtmMedium(String utmMedium) { this.utmMedium = utmMedium; }
-    public void setUtmCampaign(String utmCampaign) { this.utmCampaign = utmCampaign; }
-    public void setSubscribed(Boolean subscribed) { this.subscribed = subscribed; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    // Builder
-    public static EarlyAccessSignupBuilder builder() { return new EarlyAccessSignupBuilder(); }
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Nested Classes
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public static class EarlyAccessSignupBuilder {
-        private Long id;
-        private String email;
-        private String shopUrl;
+
+        //~ ----------------------------------------------------------------------------------------------------------------
+        //~ Instance fields
+        //~ ----------------------------------------------------------------------------------------------------------------
+
+        @Nullable
         private String country;
-        private String source;
-        private String utmSource;
-        private String utmMedium;
-        private String utmCampaign;
-        private Boolean subscribed = true;
+
+        @Nullable
         private LocalDateTime createdAt;
 
-        public EarlyAccessSignupBuilder id(Long id) { this.id = id; return this; }
-        public EarlyAccessSignupBuilder email(String email) { this.email = email; return this; }
-        public EarlyAccessSignupBuilder shopUrl(String shopUrl) { this.shopUrl = shopUrl; return this; }
-        public EarlyAccessSignupBuilder country(String country) { this.country = country; return this; }
-        public EarlyAccessSignupBuilder source(String source) { this.source = source; return this; }
-        public EarlyAccessSignupBuilder utmSource(String utmSource) { this.utmSource = utmSource; return this; }
-        public EarlyAccessSignupBuilder utmMedium(String utmMedium) { this.utmMedium = utmMedium; return this; }
-        public EarlyAccessSignupBuilder utmCampaign(String utmCampaign) { this.utmCampaign = utmCampaign; return this; }
-        public EarlyAccessSignupBuilder subscribed(Boolean subscribed) { this.subscribed = subscribed; return this; }
-        public EarlyAccessSignupBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        @Nullable
+        private String email;
 
+        @Nullable
+        private Long id;
+
+        @Nullable
+        private String shopUrl;
+
+        @Nullable
+        private String source;
+
+        @Nullable
+        private Boolean subscribed = true;
+
+        @Nullable
+        private String utmCampaign;
+
+        @Nullable
+        private String utmMedium;
+
+        @Nullable
+        private String utmSource;
+
+        //~ ----------------------------------------------------------------------------------------------------------------
+        //~ Methods
+        //~ ----------------------------------------------------------------------------------------------------------------
+
+        @Nonnull
         public EarlyAccessSignup build() {
             return new EarlyAccessSignup(id, email, shopUrl, country, source, utmSource, utmMedium,
                     utmCampaign, subscribed, createdAt);
         }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder country(@Nullable String country) { this.country = country; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder createdAt(@Nullable LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder email(@Nullable String email) { this.email = email; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder id(@Nullable Long id) { this.id = id; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder shopUrl(@Nullable String shopUrl) { this.shopUrl = shopUrl; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder source(@Nullable String source) { this.source = source; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder subscribed(@Nullable Boolean subscribed) { this.subscribed = subscribed; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder utmCampaign(@Nullable String utmCampaign) { this.utmCampaign = utmCampaign; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder utmMedium(@Nullable String utmMedium) { this.utmMedium = utmMedium; return this; }
+
+        @Nonnull
+        public EarlyAccessSignupBuilder utmSource(@Nullable String utmSource) { this.utmSource = utmSource; return this; }
     }
 }
 
 interface EarlyAccessSignupRepository extends org.springframework.data.jpa.repository.JpaRepository<EarlyAccessSignup, Long> {
-    boolean existsByEmail(String email);
+    boolean existsByEmail(@Nonnull String email);
 }

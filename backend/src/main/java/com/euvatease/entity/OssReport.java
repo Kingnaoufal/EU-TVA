@@ -1,12 +1,31 @@
 package com.euvatease.entity;
 
-import jakarta.persistence.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "oss_reports")
 public class OssReport {
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -86,15 +105,38 @@ public class OssReport {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     public OssReport() {
     }
 
-    public OssReport(Long id, Shop shop, Integer year, Integer quarter, LocalDateTime periodStart,
-                     LocalDateTime periodEnd, BigDecimal totalSales, BigDecimal totalVat, Integer totalOrders,
-                     Integer b2bOrders, Integer b2cOrders, Integer exemptOrders, Integer countriesCount,
-                     ReportStatus status, String csvFilePath, String pdfFilePath, String csvFileUrl,
-                     String pdfFileUrl, String reportData, LocalDateTime generatedAt, LocalDateTime downloadedAt,
-                     LocalDateTime submittedAt, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public OssReport(@Nullable Long id,
+                     @Nonnull Shop shop,
+                     @Nonnull Integer year,
+                     @Nonnull Integer quarter,
+                     @Nullable LocalDateTime periodStart,
+                     @Nullable LocalDateTime periodEnd,
+                     @Nullable BigDecimal totalSales,
+                     @Nullable BigDecimal totalVat,
+                     @Nullable Integer totalOrders,
+                     @Nullable Integer b2bOrders,
+                     @Nullable Integer b2cOrders,
+                     @Nullable Integer exemptOrders,
+                     @Nullable Integer countriesCount,
+                     @Nullable ReportStatus status,
+                     @Nullable String csvFilePath,
+                     @Nullable String pdfFilePath,
+                     @Nullable String csvFileUrl,
+                     @Nullable String pdfFileUrl,
+                     @Nullable String reportData,
+                     @Nullable LocalDateTime generatedAt,
+                     @Nullable LocalDateTime downloadedAt,
+                     @Nullable LocalDateTime submittedAt,
+                     @Nullable String notes,
+                     @Nullable LocalDateTime createdAt,
+                     @Nullable LocalDateTime updatedAt) {
         this.id = id;
         this.shop = shop;
         this.year = year;
@@ -122,11 +164,22 @@ public class OssReport {
         this.updatedAt = updatedAt;
     }
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    public static OssReportBuilder builder() {
+        return new OssReportBuilder();
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null) status = ReportStatus.DRAFT;
+        if (status == null) {
+            status = ReportStatus.DRAFT;
+        }
     }
 
     @PreUpdate
@@ -134,64 +187,267 @@ public class OssReport {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Shop getShop() { return shop; }
-    public Integer getYear() { return year; }
-    public Integer getQuarter() { return quarter; }
-    public LocalDateTime getPeriodStart() { return periodStart; }
-    public LocalDateTime getPeriodEnd() { return periodEnd; }
-    public BigDecimal getTotalSales() { return totalSales; }
-    public BigDecimal getTotalVat() { return totalVat; }
-    public Integer getTotalOrders() { return totalOrders; }
-    public Integer getB2bOrders() { return b2bOrders; }
-    public Integer getB2cOrders() { return b2cOrders; }
-    public Integer getExemptOrders() { return exemptOrders; }
-    public Integer getCountriesCount() { return countriesCount; }
-    public ReportStatus getStatus() { return status; }
-    public String getCsvFilePath() { return csvFilePath; }
-    public String getPdfFilePath() { return pdfFilePath; }
-    public String getCsvFileUrl() { return csvFileUrl; }
-    public String getPdfFileUrl() { return pdfFileUrl; }
-    public String getReportData() { return reportData; }
-    public LocalDateTime getGeneratedAt() { return generatedAt; }
-    public LocalDateTime getDownloadedAt() { return downloadedAt; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public String getNotes() { return notes; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    @Nullable
+    public Long getId() {
+        return id;
+    }
 
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setShop(Shop shop) { this.shop = shop; }
-    public void setYear(Integer year) { this.year = year; }
-    public void setQuarter(Integer quarter) { this.quarter = quarter; }
-    public void setPeriodStart(LocalDateTime periodStart) { this.periodStart = periodStart; }
-    public void setPeriodEnd(LocalDateTime periodEnd) { this.periodEnd = periodEnd; }
-    public void setTotalSales(BigDecimal totalSales) { this.totalSales = totalSales; }
-    public void setTotalVat(BigDecimal totalVat) { this.totalVat = totalVat; }
-    public void setTotalOrders(Integer totalOrders) { this.totalOrders = totalOrders; }
-    public void setB2bOrders(Integer b2bOrders) { this.b2bOrders = b2bOrders; }
-    public void setB2cOrders(Integer b2cOrders) { this.b2cOrders = b2cOrders; }
-    public void setExemptOrders(Integer exemptOrders) { this.exemptOrders = exemptOrders; }
-    public void setCountriesCount(Integer countriesCount) { this.countriesCount = countriesCount; }
-    public void setStatus(ReportStatus status) { this.status = status; }
-    public void setCsvFilePath(String csvFilePath) { this.csvFilePath = csvFilePath; }
-    public void setPdfFilePath(String pdfFilePath) { this.pdfFilePath = pdfFilePath; }
-    public void setCsvFileUrl(String csvFileUrl) { this.csvFileUrl = csvFileUrl; }
-    public void setPdfFileUrl(String pdfFileUrl) { this.pdfFileUrl = pdfFileUrl; }
-    public void setReportData(String reportData) { this.reportData = reportData; }
-    public void setGeneratedAt(LocalDateTime generatedAt) { this.generatedAt = generatedAt; }
-    public void setDownloadedAt(LocalDateTime downloadedAt) { this.downloadedAt = downloadedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
-    public void setNotes(String notes) { this.notes = notes; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setId(@Nullable Long id) {
+        this.id = id;
+    }
 
-    // Builder
-    public static OssReportBuilder builder() { return new OssReportBuilder(); }
+    @Nonnull
+    public Shop getShop() {
+        return shop;
+    }
+
+    public void setShop(@Nonnull Shop shop) {
+        this.shop = shop;
+    }
+
+    @Nonnull
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(@Nonnull Integer year) {
+        this.year = year;
+    }
+
+    @Nonnull
+    public Integer getQuarter() {
+        return quarter;
+    }
+
+    public void setQuarter(@Nonnull Integer quarter) {
+        this.quarter = quarter;
+    }
+
+    @Nullable
+    public LocalDateTime getPeriodStart() {
+        return periodStart;
+    }
+
+    public void setPeriodStart(@Nullable LocalDateTime periodStart) {
+        this.periodStart = periodStart;
+    }
+
+    @Nullable
+    public LocalDateTime getPeriodEnd() {
+        return periodEnd;
+    }
+
+    public void setPeriodEnd(@Nullable LocalDateTime periodEnd) {
+        this.periodEnd = periodEnd;
+    }
+
+    @Nullable
+    public BigDecimal getTotalSales() {
+        return totalSales;
+    }
+
+    public void setTotalSales(@Nullable BigDecimal totalSales) {
+        this.totalSales = totalSales;
+    }
+
+    @Nullable
+    public BigDecimal getTotalVat() {
+        return totalVat;
+    }
+
+    public void setTotalVat(@Nullable BigDecimal totalVat) {
+        this.totalVat = totalVat;
+    }
+
+    @Nullable
+    public Integer getTotalOrders() {
+        return totalOrders;
+    }
+
+    public void setTotalOrders(@Nullable Integer totalOrders) {
+        this.totalOrders = totalOrders;
+    }
+
+    @Nullable
+    public Integer getB2bOrders() {
+        return b2bOrders;
+    }
+
+    public void setB2bOrders(@Nullable Integer b2bOrders) {
+        this.b2bOrders = b2bOrders;
+    }
+
+    @Nullable
+    public Integer getB2cOrders() {
+        return b2cOrders;
+    }
+
+    public void setB2cOrders(@Nullable Integer b2cOrders) {
+        this.b2cOrders = b2cOrders;
+    }
+
+    @Nullable
+    public Integer getExemptOrders() {
+        return exemptOrders;
+    }
+
+    public void setExemptOrders(@Nullable Integer exemptOrders) {
+        this.exemptOrders = exemptOrders;
+    }
+
+    @Nullable
+    public Integer getCountriesCount() {
+        return countriesCount;
+    }
+
+    public void setCountriesCount(@Nullable Integer countriesCount) {
+        this.countriesCount = countriesCount;
+    }
+
+    @Nullable
+    public ReportStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(@Nullable ReportStatus status) {
+        this.status = status;
+    }
+
+    @Nullable
+    public String getCsvFilePath() {
+        return csvFilePath;
+    }
+
+    public void setCsvFilePath(@Nullable String csvFilePath) {
+        this.csvFilePath = csvFilePath;
+    }
+
+    @Nullable
+    public String getPdfFilePath() {
+        return pdfFilePath;
+    }
+
+    public void setPdfFilePath(@Nullable String pdfFilePath) {
+        this.pdfFilePath = pdfFilePath;
+    }
+
+    @Nullable
+    public String getCsvFileUrl() {
+        return csvFileUrl;
+    }
+
+    public void setCsvFileUrl(@Nullable String csvFileUrl) {
+        this.csvFileUrl = csvFileUrl;
+    }
+
+    @Nullable
+    public String getPdfFileUrl() {
+        return pdfFileUrl;
+    }
+
+    public void setPdfFileUrl(@Nullable String pdfFileUrl) {
+        this.pdfFileUrl = pdfFileUrl;
+    }
+
+    @Nullable
+    public String getReportData() {
+        return reportData;
+    }
+
+    public void setReportData(@Nullable String reportData) {
+        this.reportData = reportData;
+    }
+
+    @Nullable
+    public LocalDateTime getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public void setGeneratedAt(@Nullable LocalDateTime generatedAt) {
+        this.generatedAt = generatedAt;
+    }
+
+    @Nullable
+    public LocalDateTime getDownloadedAt() {
+        return downloadedAt;
+    }
+
+    public void setDownloadedAt(@Nullable LocalDateTime downloadedAt) {
+        this.downloadedAt = downloadedAt;
+    }
+
+    @Nullable
+    public LocalDateTime getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public void setSubmittedAt(@Nullable LocalDateTime submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    @Nullable
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(@Nullable String notes) {
+        this.notes = notes;
+    }
+
+    @Nullable
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(@Nullable LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Nullable
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(@Nullable LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    @Nonnull
+    public String getPeriodLabel() {
+        return String.format("T%d %d", quarter, year);
+    }
+
+    @Nonnull
+    public String getQuarterLabel() {
+        return String.format("T%d %d", quarter, year);
+    }
+
+    @Nonnull
+    public String getStatusMessage() {
+        if (status == null) {
+            return "Inconnu";
+        }
+        return switch (status) {
+            case DRAFT -> "Brouillon";
+            case GENERATED -> "Généré";
+            case DOWNLOADED -> "Téléchargé";
+            case SUBMITTED -> "Soumis";
+        };
+    }
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Nested Classes
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public enum ReportStatus {
+        DRAFT,
+        GENERATED,
+        DOWNLOADED,
+        SUBMITTED
+    }
 
     public static class OssReportBuilder {
+
         private Long id;
         private Shop shop;
         private Integer year;
@@ -218,62 +474,162 @@ public class OssReport {
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
-        public OssReportBuilder id(Long id) { this.id = id; return this; }
-        public OssReportBuilder shop(Shop shop) { this.shop = shop; return this; }
-        public OssReportBuilder year(Integer year) { this.year = year; return this; }
-        public OssReportBuilder quarter(Integer quarter) { this.quarter = quarter; return this; }
-        public OssReportBuilder periodStart(LocalDateTime periodStart) { this.periodStart = periodStart; return this; }
-        public OssReportBuilder periodEnd(LocalDateTime periodEnd) { this.periodEnd = periodEnd; return this; }
-        public OssReportBuilder totalSales(BigDecimal totalSales) { this.totalSales = totalSales; return this; }
-        public OssReportBuilder totalVat(BigDecimal totalVat) { this.totalVat = totalVat; return this; }
-        public OssReportBuilder totalOrders(Integer totalOrders) { this.totalOrders = totalOrders; return this; }
-        public OssReportBuilder b2bOrders(Integer b2bOrders) { this.b2bOrders = b2bOrders; return this; }
-        public OssReportBuilder b2cOrders(Integer b2cOrders) { this.b2cOrders = b2cOrders; return this; }
-        public OssReportBuilder exemptOrders(Integer exemptOrders) { this.exemptOrders = exemptOrders; return this; }
-        public OssReportBuilder countriesCount(Integer countriesCount) { this.countriesCount = countriesCount; return this; }
-        public OssReportBuilder status(ReportStatus status) { this.status = status; return this; }
-        public OssReportBuilder csvFilePath(String csvFilePath) { this.csvFilePath = csvFilePath; return this; }
-        public OssReportBuilder pdfFilePath(String pdfFilePath) { this.pdfFilePath = pdfFilePath; return this; }
-        public OssReportBuilder csvFileUrl(String csvFileUrl) { this.csvFileUrl = csvFileUrl; return this; }
-        public OssReportBuilder pdfFileUrl(String pdfFileUrl) { this.pdfFileUrl = pdfFileUrl; return this; }
-        public OssReportBuilder reportData(String reportData) { this.reportData = reportData; return this; }
-        public OssReportBuilder generatedAt(LocalDateTime generatedAt) { this.generatedAt = generatedAt; return this; }
-        public OssReportBuilder downloadedAt(LocalDateTime downloadedAt) { this.downloadedAt = downloadedAt; return this; }
-        public OssReportBuilder submittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; return this; }
-        public OssReportBuilder notes(String notes) { this.notes = notes; return this; }
-        public OssReportBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
-        public OssReportBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
+        @Nonnull
+        public OssReportBuilder id(@Nullable Long id) {
+            this.id = id;
+            return this;
+        }
 
+        @Nonnull
+        public OssReportBuilder shop(@Nonnull Shop shop) {
+            this.shop = shop;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder year(@Nonnull Integer year) {
+            this.year = year;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder quarter(@Nonnull Integer quarter) {
+            this.quarter = quarter;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder periodStart(@Nullable LocalDateTime periodStart) {
+            this.periodStart = periodStart;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder periodEnd(@Nullable LocalDateTime periodEnd) {
+            this.periodEnd = periodEnd;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder totalSales(@Nullable BigDecimal totalSales) {
+            this.totalSales = totalSales;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder totalVat(@Nullable BigDecimal totalVat) {
+            this.totalVat = totalVat;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder totalOrders(@Nullable Integer totalOrders) {
+            this.totalOrders = totalOrders;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder b2bOrders(@Nullable Integer b2bOrders) {
+            this.b2bOrders = b2bOrders;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder b2cOrders(@Nullable Integer b2cOrders) {
+            this.b2cOrders = b2cOrders;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder exemptOrders(@Nullable Integer exemptOrders) {
+            this.exemptOrders = exemptOrders;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder countriesCount(@Nullable Integer countriesCount) {
+            this.countriesCount = countriesCount;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder status(@Nullable ReportStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder csvFilePath(@Nullable String csvFilePath) {
+            this.csvFilePath = csvFilePath;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder pdfFilePath(@Nullable String pdfFilePath) {
+            this.pdfFilePath = pdfFilePath;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder csvFileUrl(@Nullable String csvFileUrl) {
+            this.csvFileUrl = csvFileUrl;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder pdfFileUrl(@Nullable String pdfFileUrl) {
+            this.pdfFileUrl = pdfFileUrl;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder reportData(@Nullable String reportData) {
+            this.reportData = reportData;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder generatedAt(@Nullable LocalDateTime generatedAt) {
+            this.generatedAt = generatedAt;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder downloadedAt(@Nullable LocalDateTime downloadedAt) {
+            this.downloadedAt = downloadedAt;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder submittedAt(@Nullable LocalDateTime submittedAt) {
+            this.submittedAt = submittedAt;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder notes(@Nullable String notes) {
+            this.notes = notes;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder createdAt(@Nullable LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        @Nonnull
+        public OssReportBuilder updatedAt(@Nullable LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        @Nonnull
         public OssReport build() {
             return new OssReport(id, shop, year, quarter, periodStart, periodEnd, totalSales, totalVat,
                     totalOrders, b2bOrders, b2cOrders, exemptOrders, countriesCount, status, csvFilePath,
                     pdfFilePath, csvFileUrl, pdfFileUrl, reportData, generatedAt, downloadedAt, submittedAt,
                     notes, createdAt, updatedAt);
         }
-    }
-
-    public String getPeriodLabel() {
-        return String.format("T%d %d", quarter, year);
-    }
-
-    public String getQuarterLabel() {
-        return String.format("T%d %d", quarter, year);
-    }
-
-    public String getStatusMessage() {
-        if (status == null) return "Inconnu";
-        return switch (status) {
-            case DRAFT -> "Brouillon";
-            case GENERATED -> "Généré";
-            case DOWNLOADED -> "Téléchargé";
-            case SUBMITTED -> "Soumis";
-        };
-    }
-
-    public enum ReportStatus {
-        DRAFT,
-        GENERATED,
-        DOWNLOADED,
-        SUBMITTED
     }
 }

@@ -2,6 +2,7 @@ package com.euvatease.repository;
 
 import com.euvatease.entity.OssReport;
 import com.euvatease.entity.OssReportLine;
+import jakarta.annotation.Nonnull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,15 +13,23 @@ import java.util.List;
 @Repository
 public interface OssReportLineRepository extends JpaRepository<OssReportLine, Long> {
 
-    List<OssReportLine> findByReport(OssReport report);
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    List<OssReportLine> findByReportOrderByCountryCodeAsc(OssReport report);
+    void deleteByReport(@Nonnull OssReport report);
+
+    @Nonnull
+    List<OssReportLine> findByReport(@Nonnull OssReport report);
 
     @Query("SELECT l FROM OssReportLine l WHERE l.report = :report ORDER BY l.vatAmount DESC")
-    List<OssReportLine> findByReportOrderedByVatAmount(@Param("report") OssReport report);
+    @Nonnull
+    List<OssReportLine> findByReportOrderedByVatAmount(@Nonnull @Param("report") OssReport report);
 
-    void deleteByReport(OssReport report);
+    @Nonnull
+    List<OssReportLine> findByReportOrderByCountryCodeAsc(@Nonnull OssReport report);
 
     @Query("SELECT l.countryCode, SUM(l.vatAmount) FROM OssReportLine l WHERE l.report = :report GROUP BY l.countryCode")
-    List<Object[]> sumVatByCountry(@Param("report") OssReport report);
+    @Nonnull
+    List<Object[]> sumVatByCountry(@Nonnull @Param("report") OssReport report);
 }

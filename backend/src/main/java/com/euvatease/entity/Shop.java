@@ -1,95 +1,155 @@
 package com.euvatease.entity;
 
-import jakarta.persistence.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "shops")
 public class Shop {
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Nullable
     private Long id;
 
     @Column(name = "shopify_domain", unique = true, nullable = false)
+    @Nonnull
     private String shopifyDomain;
 
     @Column(name = "shopify_shop_id", unique = true)
+    @Nullable
     private String shopifyShopId;
 
     @Column(name = "shop_name")
+    @Nullable
     private String shopName;
 
     @Column(name = "email")
+    @Nullable
     private String email;
 
     @Column(name = "country_code")
+    @Nullable
     private String countryCode;
 
     @Column(name = "currency")
+    @Nullable
     private String currency;
 
     @Column(name = "access_token", length = 512)
+    @Nullable
     private String accessToken;
 
     @Column(name = "vat_number")
+    @Nullable
     private String vatNumber;
 
     @Column(name = "oss_registered")
+    @Nullable
     private Boolean ossRegistered;
 
     @Column(name = "oss_country_code")
+    @Nullable
     private String ossCountryCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "subscription_status")
+    @Nullable
     private SubscriptionStatus subscriptionStatus;
 
     @Column(name = "subscription_plan")
+    @Nullable
     private String subscriptionPlan;
 
     @Column(name = "shopify_charge_id")
+    @Nullable
     private String shopifyChargeId;
 
     @Column(name = "trial_ends_at")
+    @Nullable
     private LocalDateTime trialEndsAt;
 
     @Column(name = "subscription_ends_at")
+    @Nullable
     private LocalDateTime subscriptionEndsAt;
 
     @Column(name = "installed_at")
+    @Nullable
     private LocalDateTime installedAt;
 
     @Column(name = "uninstalled_at")
+    @Nullable
     private LocalDateTime uninstalledAt;
 
     @Column(name = "created_at")
+    @Nullable
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
+    @Nullable
     private LocalDateTime updatedAt;
 
     @Column(name = "is_active")
+    @Nullable
     private Boolean isActive;
 
     @Column(name = "alert_email_enabled")
+    @Nullable
     private Boolean alertEmailEnabled;
 
     @Column(name = "oss_threshold_alert_sent")
+    @Nullable
     private Boolean ossThresholdAlertSent;
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ----------------------------------------------------------------------------------------------------------------
 
     public Shop() {
     }
 
-    public Shop(Long id, String shopifyDomain, String shopifyShopId, String shopName, String email,
-                String countryCode, String currency, String accessToken, String vatNumber,
-                Boolean ossRegistered, String ossCountryCode, SubscriptionStatus subscriptionStatus,
-                String subscriptionPlan, String shopifyChargeId, LocalDateTime trialEndsAt,
-                LocalDateTime subscriptionEndsAt, LocalDateTime installedAt, LocalDateTime uninstalledAt,
-                LocalDateTime createdAt, LocalDateTime updatedAt, Boolean isActive,
-                Boolean alertEmailEnabled, Boolean ossThresholdAlertSent) {
+    public Shop(@Nullable Long id,
+                @Nonnull String shopifyDomain,
+                @Nullable String shopifyShopId,
+                @Nullable String shopName,
+                @Nullable String email,
+                @Nullable String countryCode,
+                @Nullable String currency,
+                @Nullable String accessToken,
+                @Nullable String vatNumber,
+                @Nullable Boolean ossRegistered,
+                @Nullable String ossCountryCode,
+                @Nullable SubscriptionStatus subscriptionStatus,
+                @Nullable String subscriptionPlan,
+                @Nullable String shopifyChargeId,
+                @Nullable LocalDateTime trialEndsAt,
+                @Nullable LocalDateTime subscriptionEndsAt,
+                @Nullable LocalDateTime installedAt,
+                @Nullable LocalDateTime uninstalledAt,
+                @Nullable LocalDateTime createdAt,
+                @Nullable LocalDateTime updatedAt,
+                @Nullable Boolean isActive,
+                @Nullable Boolean alertEmailEnabled,
+                @Nullable Boolean ossThresholdAlertSent) {
         this.id = id;
-        this.shopifyDomain = shopifyDomain;
+        this.shopifyDomain = Objects.requireNonNull(shopifyDomain, "shopifyDomain must not be null");
         this.shopifyShopId = shopifyShopId;
         this.shopName = shopName;
         this.email = email;
@@ -113,14 +173,237 @@ public class Shop {
         this.ossThresholdAlertSent = ossThresholdAlertSent;
     }
 
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ----------------------------------------------------------------------------------------------------------------
+
+    public static ShopBuilder builder() {
+        return new ShopBuilder();
+    }
+
+    @Nullable
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    @Nullable
+    public Boolean getAlertEmailEnabled() {
+        return alertEmailEnabled;
+    }
+
+    @Nullable
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    @Nullable
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    @Nullable
+    public String getCurrency() {
+        return currency;
+    }
+
+    @Nullable
+    public String getEmail() {
+        return email;
+    }
+
+    @Nullable
+    public Long getId() {
+        return id;
+    }
+
+    @Nullable
+    public LocalDateTime getInstalledAt() {
+        return installedAt;
+    }
+
+    @Nullable
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    @Nullable
+    public String getOssCountryCode() {
+        return ossCountryCode;
+    }
+
+    @Nullable
+    public Boolean getOssRegistered() {
+        return ossRegistered;
+    }
+
+    @Nullable
+    public Boolean getOssThresholdAlertSent() {
+        return ossThresholdAlertSent;
+    }
+
+    @Nullable
+    public String getShopifyChargeId() {
+        return shopifyChargeId;
+    }
+
+    @Nonnull
+    public String getShopifyDomain() {
+        return shopifyDomain;
+    }
+
+    @Nullable
+    public String getShopifyShopId() {
+        return shopifyShopId;
+    }
+
+    @Nullable
+    public String getShopName() {
+        return shopName;
+    }
+
+    @Nullable
+    public LocalDateTime getSubscriptionEndsAt() {
+        return subscriptionEndsAt;
+    }
+
+    @Nullable
+    public String getSubscriptionPlan() {
+        return subscriptionPlan;
+    }
+
+    @Nullable
+    public SubscriptionStatus getSubscriptionStatus() {
+        return subscriptionStatus;
+    }
+
+    @Nullable
+    public LocalDateTime getTrialEndsAt() {
+        return trialEndsAt;
+    }
+
+    @Nullable
+    public LocalDateTime getUninstalledAt() {
+        return uninstalledAt;
+    }
+
+    @Nullable
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    @Nullable
+    public String getVatNumber() {
+        return vatNumber;
+    }
+
+    public void setAccessToken(@Nullable String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public void setAlertEmailEnabled(@Nullable Boolean alertEmailEnabled) {
+        this.alertEmailEnabled = alertEmailEnabled;
+    }
+
+    public void setCountryCode(@Nullable String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    public void setCreatedAt(@Nullable LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setCurrency(@Nullable String currency) {
+        this.currency = currency;
+    }
+
+    public void setEmail(@Nullable String email) {
+        this.email = email;
+    }
+
+    public void setId(@Nullable Long id) {
+        this.id = id;
+    }
+
+    public void setInstalledAt(@Nullable LocalDateTime installedAt) {
+        this.installedAt = installedAt;
+    }
+
+    public void setIsActive(@Nullable Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public void setOssCountryCode(@Nullable String ossCountryCode) {
+        this.ossCountryCode = ossCountryCode;
+    }
+
+    public void setOssRegistered(@Nullable Boolean ossRegistered) {
+        this.ossRegistered = ossRegistered;
+    }
+
+    public void setOssThresholdAlertSent(@Nullable Boolean ossThresholdAlertSent) {
+        this.ossThresholdAlertSent = ossThresholdAlertSent;
+    }
+
+    public void setShopifyChargeId(@Nullable String shopifyChargeId) {
+        this.shopifyChargeId = shopifyChargeId;
+    }
+
+    public void setShopifyDomain(@Nonnull String shopifyDomain) {
+        this.shopifyDomain = Objects.requireNonNull(shopifyDomain, "shopifyDomain must not be null");
+    }
+
+    public void setShopifyShopId(@Nullable String shopifyShopId) {
+        this.shopifyShopId = shopifyShopId;
+    }
+
+    public void setShopName(@Nullable String shopName) {
+        this.shopName = shopName;
+    }
+
+    public void setSubscriptionEndsAt(@Nullable LocalDateTime subscriptionEndsAt) {
+        this.subscriptionEndsAt = subscriptionEndsAt;
+    }
+
+    public void setSubscriptionPlan(@Nullable String subscriptionPlan) {
+        this.subscriptionPlan = subscriptionPlan;
+    }
+
+    public void setSubscriptionStatus(@Nullable SubscriptionStatus subscriptionStatus) {
+        this.subscriptionStatus = subscriptionStatus;
+    }
+
+    public void setTrialEndsAt(@Nullable LocalDateTime trialEndsAt) {
+        this.trialEndsAt = trialEndsAt;
+    }
+
+    public void setUninstalledAt(@Nullable LocalDateTime uninstalledAt) {
+        this.uninstalledAt = uninstalledAt;
+    }
+
+    public void setUpdatedAt(@Nullable LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setVatNumber(@Nullable String vatNumber) {
+        this.vatNumber = vatNumber;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (isActive == null) isActive = true;
-        if (alertEmailEnabled == null) alertEmailEnabled = true;
-        if (ossThresholdAlertSent == null) ossThresholdAlertSent = false;
-        if (ossRegistered == null) ossRegistered = false;
+        if (isActive == null) {
+            isActive = true;
+        }
+        if (alertEmailEnabled == null) {
+            alertEmailEnabled = true;
+        }
+        if (ossThresholdAlertSent == null) {
+            ossThresholdAlertSent = false;
+        }
+        if (ossRegistered == null) {
+            ossRegistered = false;
+        }
     }
 
     @PreUpdate
@@ -128,117 +411,241 @@ public class Shop {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public String getShopifyDomain() { return shopifyDomain; }
-    public String getShopifyShopId() { return shopifyShopId; }
-    public String getShopName() { return shopName; }
-    public String getEmail() { return email; }
-    public String getCountryCode() { return countryCode; }
-    public String getCurrency() { return currency; }
-    public String getAccessToken() { return accessToken; }
-    public String getVatNumber() { return vatNumber; }
-    public Boolean getOssRegistered() { return ossRegistered; }
-    public String getOssCountryCode() { return ossCountryCode; }
-    public SubscriptionStatus getSubscriptionStatus() { return subscriptionStatus; }
-    public String getSubscriptionPlan() { return subscriptionPlan; }
-    public String getShopifyChargeId() { return shopifyChargeId; }
-    public LocalDateTime getTrialEndsAt() { return trialEndsAt; }
-    public LocalDateTime getSubscriptionEndsAt() { return subscriptionEndsAt; }
-    public LocalDateTime getInstalledAt() { return installedAt; }
-    public LocalDateTime getUninstalledAt() { return uninstalledAt; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public Boolean getIsActive() { return isActive; }
-    public Boolean getAlertEmailEnabled() { return alertEmailEnabled; }
-    public Boolean getOssThresholdAlertSent() { return ossThresholdAlertSent; }
+    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ Nested Classes
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setShopifyDomain(String shopifyDomain) { this.shopifyDomain = shopifyDomain; }
-    public void setShopifyShopId(String shopifyShopId) { this.shopifyShopId = shopifyShopId; }
-    public void setShopName(String shopName) { this.shopName = shopName; }
-    public void setEmail(String email) { this.email = email; }
-    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
-    public void setCurrency(String currency) { this.currency = currency; }
-    public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
-    public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
-    public void setOssRegistered(Boolean ossRegistered) { this.ossRegistered = ossRegistered; }
-    public void setOssCountryCode(String ossCountryCode) { this.ossCountryCode = ossCountryCode; }
-    public void setSubscriptionStatus(SubscriptionStatus subscriptionStatus) { this.subscriptionStatus = subscriptionStatus; }
-    public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
-    public void setShopifyChargeId(String shopifyChargeId) { this.shopifyChargeId = shopifyChargeId; }
-    public void setTrialEndsAt(LocalDateTime trialEndsAt) { this.trialEndsAt = trialEndsAt; }
-    public void setSubscriptionEndsAt(LocalDateTime subscriptionEndsAt) { this.subscriptionEndsAt = subscriptionEndsAt; }
-    public void setInstalledAt(LocalDateTime installedAt) { this.installedAt = installedAt; }
-    public void setUninstalledAt(LocalDateTime uninstalledAt) { this.uninstalledAt = uninstalledAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
-    public void setAlertEmailEnabled(Boolean alertEmailEnabled) { this.alertEmailEnabled = alertEmailEnabled; }
-    public void setOssThresholdAlertSent(Boolean ossThresholdAlertSent) { this.ossThresholdAlertSent = ossThresholdAlertSent; }
-
-    // Builder
-    public static ShopBuilder builder() { return new ShopBuilder(); }
+    public enum SubscriptionStatus {
+        TRIAL,
+        ACTIVE,
+        CANCELLED,
+        EXPIRED,
+        PENDING
+    }
 
     public static class ShopBuilder {
+
+        //~ ----------------------------------------------------------------------------------------------------------------
+        //~ Instance fields
+        //~ ----------------------------------------------------------------------------------------------------------------
+
+        @Nullable
         private Long id;
+
+        @Nullable
         private String shopifyDomain;
+
+        @Nullable
         private String shopifyShopId;
+
+        @Nullable
         private String shopName;
+
+        @Nullable
         private String email;
+
+        @Nullable
         private String countryCode;
+
+        @Nullable
         private String currency;
+
+        @Nullable
         private String accessToken;
+
+        @Nullable
         private String vatNumber;
+
+        @Nullable
         private Boolean ossRegistered;
+
+        @Nullable
         private String ossCountryCode;
+
+        @Nullable
         private SubscriptionStatus subscriptionStatus;
+
+        @Nullable
         private String subscriptionPlan;
+
+        @Nullable
         private String shopifyChargeId;
+
+        @Nullable
         private LocalDateTime trialEndsAt;
+
+        @Nullable
         private LocalDateTime subscriptionEndsAt;
+
+        @Nullable
         private LocalDateTime installedAt;
+
+        @Nullable
         private LocalDateTime uninstalledAt;
+
+        @Nullable
         private LocalDateTime createdAt;
+
+        @Nullable
         private LocalDateTime updatedAt;
+
+        @Nullable
         private Boolean isActive;
+
+        @Nullable
         private Boolean alertEmailEnabled;
+
+        @Nullable
         private Boolean ossThresholdAlertSent;
 
-        public ShopBuilder id(Long id) { this.id = id; return this; }
-        public ShopBuilder shopifyDomain(String shopifyDomain) { this.shopifyDomain = shopifyDomain; return this; }
-        public ShopBuilder shopifyShopId(String shopifyShopId) { this.shopifyShopId = shopifyShopId; return this; }
-        public ShopBuilder shopName(String shopName) { this.shopName = shopName; return this; }
-        public ShopBuilder email(String email) { this.email = email; return this; }
-        public ShopBuilder countryCode(String countryCode) { this.countryCode = countryCode; return this; }
-        public ShopBuilder currency(String currency) { this.currency = currency; return this; }
-        public ShopBuilder accessToken(String accessToken) { this.accessToken = accessToken; return this; }
-        public ShopBuilder vatNumber(String vatNumber) { this.vatNumber = vatNumber; return this; }
-        public ShopBuilder ossRegistered(Boolean ossRegistered) { this.ossRegistered = ossRegistered; return this; }
-        public ShopBuilder ossCountryCode(String ossCountryCode) { this.ossCountryCode = ossCountryCode; return this; }
-        public ShopBuilder subscriptionStatus(SubscriptionStatus subscriptionStatus) { this.subscriptionStatus = subscriptionStatus; return this; }
-        public ShopBuilder subscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; return this; }
-        public ShopBuilder shopifyChargeId(String shopifyChargeId) { this.shopifyChargeId = shopifyChargeId; return this; }
-        public ShopBuilder trialEndsAt(LocalDateTime trialEndsAt) { this.trialEndsAt = trialEndsAt; return this; }
-        public ShopBuilder subscriptionEndsAt(LocalDateTime subscriptionEndsAt) { this.subscriptionEndsAt = subscriptionEndsAt; return this; }
-        public ShopBuilder installedAt(LocalDateTime installedAt) { this.installedAt = installedAt; return this; }
-        public ShopBuilder uninstalledAt(LocalDateTime uninstalledAt) { this.uninstalledAt = uninstalledAt; return this; }
-        public ShopBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
-        public ShopBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
-        public ShopBuilder isActive(Boolean isActive) { this.isActive = isActive; return this; }
-        public ShopBuilder alertEmailEnabled(Boolean alertEmailEnabled) { this.alertEmailEnabled = alertEmailEnabled; return this; }
-        public ShopBuilder ossThresholdAlertSent(Boolean ossThresholdAlertSent) { this.ossThresholdAlertSent = ossThresholdAlertSent; return this; }
+        //~ ----------------------------------------------------------------------------------------------------------------
+        //~ Methods
+        //~ ----------------------------------------------------------------------------------------------------------------
 
+        @Nonnull
+        public ShopBuilder accessToken(@Nullable String accessToken) {
+            this.accessToken = accessToken;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder alertEmailEnabled(@Nullable Boolean alertEmailEnabled) {
+            this.alertEmailEnabled = alertEmailEnabled;
+            return this;
+        }
+
+        @Nonnull
         public Shop build() {
             return new Shop(id, shopifyDomain, shopifyShopId, shopName, email, countryCode, currency,
                     accessToken, vatNumber, ossRegistered, ossCountryCode, subscriptionStatus,
                     subscriptionPlan, shopifyChargeId, trialEndsAt, subscriptionEndsAt, installedAt,
                     uninstalledAt, createdAt, updatedAt, isActive, alertEmailEnabled, ossThresholdAlertSent);
         }
-    }
 
-    public enum SubscriptionStatus {
-        TRIAL, ACTIVE, CANCELLED, EXPIRED, PENDING
+        @Nonnull
+        public ShopBuilder countryCode(@Nullable String countryCode) {
+            this.countryCode = countryCode;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder createdAt(@Nullable LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder currency(@Nullable String currency) {
+            this.currency = currency;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder email(@Nullable String email) {
+            this.email = email;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder id(@Nullable Long id) {
+            this.id = id;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder installedAt(@Nullable LocalDateTime installedAt) {
+            this.installedAt = installedAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder isActive(@Nullable Boolean isActive) {
+            this.isActive = isActive;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder ossCountryCode(@Nullable String ossCountryCode) {
+            this.ossCountryCode = ossCountryCode;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder ossRegistered(@Nullable Boolean ossRegistered) {
+            this.ossRegistered = ossRegistered;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder ossThresholdAlertSent(@Nullable Boolean ossThresholdAlertSent) {
+            this.ossThresholdAlertSent = ossThresholdAlertSent;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder shopifyChargeId(@Nullable String shopifyChargeId) {
+            this.shopifyChargeId = shopifyChargeId;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder shopifyDomain(@Nonnull String shopifyDomain) {
+            this.shopifyDomain = shopifyDomain;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder shopifyShopId(@Nullable String shopifyShopId) {
+            this.shopifyShopId = shopifyShopId;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder shopName(@Nullable String shopName) {
+            this.shopName = shopName;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder subscriptionEndsAt(@Nullable LocalDateTime subscriptionEndsAt) {
+            this.subscriptionEndsAt = subscriptionEndsAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder subscriptionPlan(@Nullable String subscriptionPlan) {
+            this.subscriptionPlan = subscriptionPlan;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder subscriptionStatus(@Nullable SubscriptionStatus subscriptionStatus) {
+            this.subscriptionStatus = subscriptionStatus;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder trialEndsAt(@Nullable LocalDateTime trialEndsAt) {
+            this.trialEndsAt = trialEndsAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder uninstalledAt(@Nullable LocalDateTime uninstalledAt) {
+            this.uninstalledAt = uninstalledAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder updatedAt(@Nullable LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        @Nonnull
+        public ShopBuilder vatNumber(@Nullable String vatNumber) {
+            this.vatNumber = vatNumber;
+            return this;
+        }
     }
 }

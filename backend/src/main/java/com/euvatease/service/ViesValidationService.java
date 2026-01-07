@@ -5,10 +5,21 @@ import com.euvatease.entity.Shop;
 import com.euvatease.entity.VatValidation;
 import com.euvatease.entity.VatValidation.ValidationStatus;
 import com.euvatease.repository.VatValidationRepository;
-import jakarta.xml.soap.*;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import jakarta.xml.soap.MessageFactory;
+import jakarta.xml.soap.SOAPBody;
+import jakarta.xml.soap.SOAPConnection;
+import jakarta.xml.soap.SOAPConnectionFactory;
+import jakarta.xml.soap.SOAPElement;
+import jakarta.xml.soap.SOAPEnvelope;
+import jakarta.xml.soap.SOAPException;
+import jakarta.xml.soap.SOAPMessage;
+import jakarta.xml.soap.SOAPPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -18,6 +29,8 @@ import org.w3c.dom.NodeList;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -29,25 +42,11 @@ import java.util.regex.Pattern;
 @Service
 public class ViesValidationService {
 
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Static fields/initializers
+    //~ ------------------------------------------------------------------------------------------------
+
     private static final Logger log = LoggerFactory.getLogger(ViesValidationService.class);
-
-    private final VatValidationRepository vatValidationRepository;
-
-    public ViesValidationService(VatValidationRepository vatValidationRepository) {
-        this.vatValidationRepository = vatValidationRepository;
-    }
-
-    @Value("${vies.wsdl-url:https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl}")
-    private String viesWsdlUrl;
-
-    @Value("${vies.timeout:30000}")
-    private int viesTimeout;
-
-    @Value("${vies.retry-attempts:3}")
-    private int maxRetryAttempts;
-
-    @Value("${vies.retry-delay:1000}")
-    private long retryDelay;
 
     // Codes pays UE valides pour la TVA
     private static final Set<String> EU_COUNTRY_CODES = Set.of(
@@ -57,52 +56,128 @@ public class ViesValidationService {
     );
 
     // Patterns de validation par pays (formats simplifiés)
-    private static final java.util.Map<String, Pattern> VAT_PATTERNS = java.util.Map.ofEntries(
-        java.util.Map.entry("AT", Pattern.compile("^ATU[0-9]{8}$")),
-        java.util.Map.entry("BE", Pattern.compile("^BE[0-9]{10}$")),
-        java.util.Map.entry("BG", Pattern.compile("^BG[0-9]{9,10}$")),
-        java.util.Map.entry("HR", Pattern.compile("^HR[0-9]{11}$")),
-        java.util.Map.entry("CY", Pattern.compile("^CY[0-9]{8}[A-Z]$")),
-        java.util.Map.entry("CZ", Pattern.compile("^CZ[0-9]{8,10}$")),
-        java.util.Map.entry("DK", Pattern.compile("^DK[0-9]{8}$")),
-        java.util.Map.entry("EE", Pattern.compile("^EE[0-9]{9}$")),
-        java.util.Map.entry("FI", Pattern.compile("^FI[0-9]{8}$")),
-        java.util.Map.entry("FR", Pattern.compile("^FR[A-Z0-9]{2}[0-9]{9}$")),
-        java.util.Map.entry("DE", Pattern.compile("^DE[0-9]{9}$")),
-        java.util.Map.entry("GR", Pattern.compile("^(GR|EL)[0-9]{9}$")),
-        java.util.Map.entry("HU", Pattern.compile("^HU[0-9]{8}$")),
-        java.util.Map.entry("IE", Pattern.compile("^IE[0-9]{7}[A-Z]{1,2}$|^IE[0-9][A-Z][0-9]{5}[A-Z]$")),
-        java.util.Map.entry("IT", Pattern.compile("^IT[0-9]{11}$")),
-        java.util.Map.entry("LV", Pattern.compile("^LV[0-9]{11}$")),
-        java.util.Map.entry("LT", Pattern.compile("^LT[0-9]{9,12}$")),
-        java.util.Map.entry("LU", Pattern.compile("^LU[0-9]{8}$")),
-        java.util.Map.entry("MT", Pattern.compile("^MT[0-9]{8}$")),
-        java.util.Map.entry("NL", Pattern.compile("^NL[0-9]{9}B[0-9]{2}$")),
-        java.util.Map.entry("PL", Pattern.compile("^PL[0-9]{10}$")),
-        java.util.Map.entry("PT", Pattern.compile("^PT[0-9]{9}$")),
-        java.util.Map.entry("RO", Pattern.compile("^RO[0-9]{2,10}$")),
-        java.util.Map.entry("SK", Pattern.compile("^SK[0-9]{10}$")),
-        java.util.Map.entry("SI", Pattern.compile("^SI[0-9]{8}$")),
-        java.util.Map.entry("ES", Pattern.compile("^ES[A-Z0-9][0-9]{7}[A-Z0-9]$")),
-        java.util.Map.entry("SE", Pattern.compile("^SE[0-9]{12}$"))
+    private static final Map<String, Pattern> VAT_PATTERNS = Map.ofEntries(
+        Map.entry("AT", Pattern.compile("^ATU[0-9]{8}$")),
+        Map.entry("BE", Pattern.compile("^BE[0-9]{10}$")),
+        Map.entry("BG", Pattern.compile("^BG[0-9]{9,10}$")),
+        Map.entry("HR", Pattern.compile("^HR[0-9]{11}$")),
+        Map.entry("CY", Pattern.compile("^CY[0-9]{8}[A-Z]$")),
+        Map.entry("CZ", Pattern.compile("^CZ[0-9]{8,10}$")),
+        Map.entry("DK", Pattern.compile("^DK[0-9]{8}$")),
+        Map.entry("EE", Pattern.compile("^EE[0-9]{9}$")),
+        Map.entry("FI", Pattern.compile("^FI[0-9]{8}$")),
+        Map.entry("FR", Pattern.compile("^FR[A-Z0-9]{2}[0-9]{9}$")),
+        Map.entry("DE", Pattern.compile("^DE[0-9]{9}$")),
+        Map.entry("GR", Pattern.compile("^(GR|EL)[0-9]{9}$")),
+        Map.entry("HU", Pattern.compile("^HU[0-9]{8}$")),
+        Map.entry("IE", Pattern.compile("^IE[0-9]{7}[A-Z]{1,2}$|^IE[0-9][A-Z][0-9]{5}[A-Z]$")),
+        Map.entry("IT", Pattern.compile("^IT[0-9]{11}$")),
+        Map.entry("LV", Pattern.compile("^LV[0-9]{11}$")),
+        Map.entry("LT", Pattern.compile("^LT[0-9]{9,12}$")),
+        Map.entry("LU", Pattern.compile("^LU[0-9]{8}$")),
+        Map.entry("MT", Pattern.compile("^MT[0-9]{8}$")),
+        Map.entry("NL", Pattern.compile("^NL[0-9]{9}B[0-9]{2}$")),
+        Map.entry("PL", Pattern.compile("^PL[0-9]{10}$")),
+        Map.entry("PT", Pattern.compile("^PT[0-9]{9}$")),
+        Map.entry("RO", Pattern.compile("^RO[0-9]{2,10}$")),
+        Map.entry("SK", Pattern.compile("^SK[0-9]{10}$")),
+        Map.entry("SI", Pattern.compile("^SI[0-9]{8}$")),
+        Map.entry("ES", Pattern.compile("^ES[A-Z0-9][0-9]{7}[A-Z0-9]$")),
+        Map.entry("SE", Pattern.compile("^SE[0-9]{12}$"))
     );
+
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    private final VatValidationRepository vatValidationRepository;
+
+    @Value("${vies.retry-attempts:3}")
+    private int maxRetryAttempts;
+
+    @Value("${vies.retry-delay:1000}")
+    private long retryDelay;
+
+    @Value("${vies.timeout:30000}")
+    private int viesTimeout;
+
+    @Value("${vies.wsdl-url:https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl}")
+    @Nonnull
+    private String viesWsdlUrl;
+
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ------------------------------------------------------------------------------------------------
+
+    public ViesValidationService(@Nonnull VatValidationRepository vatValidationRepository) {
+        this.vatValidationRepository = Objects.requireNonNull(vatValidationRepository, "vatValidationRepository must not be null");
+    }
+
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ------------------------------------------------------------------------------------------------
+
+    /**
+     * Job planifié pour retenter les validations en échec
+     */
+    @Scheduled(fixedRate = 900000) // Toutes les 15 minutes
+    @Transactional
+    public void retryFailedValidations() {
+        List<VatValidation> retryable = vatValidationRepository.findRetryableValidations(
+            maxRetryAttempts, LocalDateTime.now());
+
+        for (VatValidation validation : retryable) {
+            try {
+                log.info("Retry validation pour {}", maskVatNumber(validation.getVatNumber()));
+                String countryCode = validation.getCountryCode();
+                String vatNumberWithoutCountry = validation.getVatNumberWithoutCountry();
+
+                ViesResponse response = executeViesRequest(countryCode, vatNumberWithoutCountry);
+
+                if (response.isValid()) {
+                    validation.setValidationStatus(ValidationStatus.VALID);
+                    validation.setCompanyName(response.getCompanyName());
+                    validation.setCompanyAddress(response.getCompanyAddress());
+                } else {
+                    validation.setValidationStatus(ValidationStatus.INVALID);
+                }
+                validation.setValidationDate(LocalDateTime.now());
+                validation.setNextRetryAt(null);
+                vatValidationRepository.save(validation);
+
+            } catch (ViesUnavailableException e) {
+                validation.setRetryCount(validation.getRetryCount() + 1);
+                validation.setNextRetryAt(LocalDateTime.now().plusMinutes(30));
+                vatValidationRepository.save(validation);
+            } catch (Exception e) {
+                log.error("Erreur retry validation: {}", e.getMessage());
+                validation.setValidationStatus(ValidationStatus.ERROR);
+                validation.setErrorMessage(e.getMessage());
+                vatValidationRepository.save(validation);
+            }
+        }
+    }
 
     /**
      * Valide un numéro de TVA intracommunautaire.
      * Cette méthode est le point d'entrée principal pour la validation.
      */
     @Transactional
-    public VatValidationResult validateVatNumber(Shop shop, String vatNumber, String shopifyOrderId) {
+    @Nonnull
+    public VatValidationResult validateVatNumber(@Nonnull Shop shop,
+                                                 @Nonnull String vatNumber,
+                                                 @Nullable String shopifyOrderId) {
         log.info("Validation TVA demandée pour shop={}, vatNumber={}", shop.getShopifyDomain(), maskVatNumber(vatNumber));
 
         // Normalisation du numéro
         String normalizedVat = normalizeVatNumber(vatNumber);
-        
+
         // Extraction du code pays
         String countryCode = extractCountryCode(normalizedVat);
-        
+
         if (countryCode == null || !EU_COUNTRY_CODES.contains(countryCode)) {
-            return createValidationResult(shop, normalizedVat, null, shopifyOrderId, 
+            return createValidationResult(shop, normalizedVat, null, shopifyOrderId,
                 ValidationStatus.FORMAT_ERROR, "Code pays non reconnu ou non-UE", null, null);
         }
 
@@ -124,9 +199,27 @@ public class ViesValidationService {
     }
 
     /**
+     * Validation asynchrone (ne bloque pas le checkout)
+     */
+    @Async
+    public void validateVatNumberAsync(@Nonnull Shop shop,
+                                       @Nonnull String vatNumber,
+                                       @Nullable String shopifyOrderId) {
+        try {
+            validateVatNumber(shop, vatNumber, shopifyOrderId);
+        } catch (Exception e) {
+            log.error("Erreur validation async: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Appel au service VIES avec gestion des retries
      */
-    private VatValidationResult callViesService(Shop shop, String vatNumber, String countryCode, String shopifyOrderId) {
+    @Nonnull
+    private VatValidationResult callViesService(@Nonnull Shop shop,
+                                                @Nonnull String vatNumber,
+                                                @Nonnull String countryCode,
+                                                @Nullable String shopifyOrderId) {
         String vatNumberWithoutCountry = vatNumber.substring(2);
         String requestId = UUID.randomUUID().toString();
         int attempts = 0;
@@ -136,7 +229,7 @@ public class ViesValidationService {
             attempts++;
             try {
                 ViesResponse response = executeViesRequest(countryCode, vatNumberWithoutCountry);
-                
+
                 if (response.isValid()) {
                     return createValidationResult(shop, vatNumber, countryCode, shopifyOrderId,
                         ValidationStatus.VALID, null, response, requestId);
@@ -168,9 +261,53 @@ public class ViesValidationService {
     }
 
     /**
+     * Crée et persiste le résultat de validation
+     */
+    @Transactional
+    @Nonnull
+    protected VatValidationResult createValidationResult(@Nonnull Shop shop,
+                                                         @Nonnull String vatNumber,
+                                                         @Nullable String countryCode,
+                                                         @Nullable String shopifyOrderId,
+                                                         @Nonnull ValidationStatus status,
+                                                         @Nullable String errorMessage,
+                                                         @Nullable ViesResponse viesResponse,
+                                                         @Nullable String requestId) {
+        VatValidation validation = VatValidation.builder()
+            .shop(shop)
+            .vatNumber(vatNumber)
+            .countryCode(countryCode)
+            .vatNumberWithoutCountry(countryCode != null ? vatNumber.substring(2) : null)
+            .shopifyOrderId(shopifyOrderId)
+            .validationStatus(status)
+            .viesRequestId(requestId)
+            .errorMessage(errorMessage)
+            .validationDate(LocalDateTime.now())
+            .retryCount(0)
+            .build();
+
+        if (viesResponse != null) {
+            validation.setCompanyName(viesResponse.getCompanyName());
+            validation.setCompanyAddress(viesResponse.getCompanyAddress());
+            validation.setViesResponse(viesResponse.toString());
+        }
+
+        if (status == ValidationStatus.UNAVAILABLE) {
+            validation.setNextRetryAt(LocalDateTime.now().plusMinutes(15));
+        }
+
+        VatValidation saved = vatValidationRepository.save(validation);
+        log.info("Validation TVA enregistrée: status={}, vatNumber={}", status, maskVatNumber(vatNumber));
+
+        return toValidationResult(saved);
+    }
+
+    /**
      * Exécute la requête SOAP vers VIES
      */
-    private ViesResponse executeViesRequest(String countryCode, String vatNumber) throws Exception {
+    @Nonnull
+    private ViesResponse executeViesRequest(@Nonnull String countryCode,
+                                            @Nonnull String vatNumber) throws Exception {
         // Adapter le code pays pour la Grèce (EL dans VIES)
         String viesCountryCode = "GR".equals(countryCode) ? "EL" : countryCode;
 
@@ -215,12 +352,71 @@ public class ViesValidationService {
         }
     }
 
+    @Nullable
+    private String extractCountryCode(@Nonnull String vatNumber) {
+        if (vatNumber.length() < 2) {
+            return null;
+        }
+        String prefix = vatNumber.substring(0, 2);
+        // Cas spécial Grèce: EL -> GR
+        if ("EL".equals(prefix)) {
+            return "GR";
+        }
+        return EU_COUNTRY_CODES.contains(prefix) ? prefix : null;
+    }
+
+    @Nonnull
+    private Optional<VatValidation> findRecentValidation(@Nonnull String vatNumber) {
+        LocalDateTime threshold = LocalDateTime.now().minusHours(24);
+        return vatValidationRepository.findLatestByVatNumber(vatNumber,
+            PageRequest.of(0, 1))
+            .stream()
+            .filter(v -> v.getValidationDate().isAfter(threshold))
+            .findFirst();
+    }
+
+    private boolean isValidFormat(@Nonnull String countryCode,
+                                  @Nonnull String vatNumber) {
+        Pattern pattern = VAT_PATTERNS.get(countryCode);
+        if (pattern == null) {
+            return true; // Accepter si pas de pattern défini
+        }
+        return pattern.matcher(vatNumber).matches();
+    }
+
+    private boolean isViesUnavailable(@Nonnull SOAPException e) {
+        String message = e.getMessage();
+        return message != null && (
+            message.contains("MS_UNAVAILABLE") ||
+            message.contains("SERVICE_UNAVAILABLE") ||
+            message.contains("timeout") ||
+            message.contains("Connection refused")
+        );
+    }
+
+    @Nonnull
+    private String maskVatNumber(@Nullable String vatNumber) {
+        if (vatNumber == null || vatNumber.length() < 6) {
+            return "***";
+        }
+        return vatNumber.substring(0, 4) + "***" + vatNumber.substring(vatNumber.length() - 2);
+    }
+
+    @Nonnull
+    private String normalizeVatNumber(@Nullable String vatNumber) {
+        if (vatNumber == null) {
+            return "";
+        }
+        return vatNumber.toUpperCase().replaceAll("[^A-Z0-9]", "");
+    }
+
     /**
      * Parse la réponse VIES
      */
-    private ViesResponse parseViesResponse(SOAPMessage response) throws SOAPException {
+    @Nonnull
+    private ViesResponse parseViesResponse(@Nonnull SOAPMessage response) throws SOAPException {
         SOAPBody responseBody = response.getSOAPBody();
-        
+
         if (responseBody.hasFault()) {
             String faultString = responseBody.getFault().getFaultString();
             if (faultString.contains("MS_UNAVAILABLE") || faultString.contains("SERVICE_UNAVAILABLE")) {
@@ -230,7 +426,7 @@ public class ViesValidationService {
         }
 
         ViesResponse viesResponse = new ViesResponse();
-        
+
         NodeList nodeList = responseBody.getElementsByTagName("*");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -251,46 +447,10 @@ public class ViesValidationService {
     }
 
     /**
-     * Crée et persiste le résultat de validation
-     */
-    @Transactional
-    protected VatValidationResult createValidationResult(Shop shop, String vatNumber, String countryCode,
-                                                          String shopifyOrderId, ValidationStatus status,
-                                                          String errorMessage, ViesResponse viesResponse,
-                                                          String requestId) {
-        VatValidation validation = VatValidation.builder()
-            .shop(shop)
-            .vatNumber(vatNumber)
-            .countryCode(countryCode)
-            .vatNumberWithoutCountry(countryCode != null ? vatNumber.substring(2) : null)
-            .shopifyOrderId(shopifyOrderId)
-            .validationStatus(status)
-            .viesRequestId(requestId)
-            .errorMessage(errorMessage)
-            .validationDate(LocalDateTime.now())
-            .retryCount(0)
-            .build();
-
-        if (viesResponse != null) {
-            validation.setCompanyName(viesResponse.getCompanyName());
-            validation.setCompanyAddress(viesResponse.getCompanyAddress());
-            validation.setViesResponse(viesResponse.toString());
-        }
-
-        if (status == ValidationStatus.UNAVAILABLE) {
-            validation.setNextRetryAt(LocalDateTime.now().plusMinutes(15));
-        }
-
-        VatValidation saved = vatValidationRepository.save(validation);
-        log.info("Validation TVA enregistrée: status={}, vatNumber={}", status, maskVatNumber(vatNumber));
-
-        return toValidationResult(saved);
-    }
-
-    /**
      * Convertit l'entité en DTO résultat
      */
-    private VatValidationResult toValidationResult(VatValidation validation) {
+    @Nonnull
+    private VatValidationResult toValidationResult(@Nonnull VatValidation validation) {
         return VatValidationResult.builder()
             .id(validation.getId())
             .vatNumber(validation.getVatNumber())
@@ -305,125 +465,54 @@ public class ViesValidationService {
             .build();
     }
 
-    /**
-     * Recherche une validation récente (moins de 24h) pour le même numéro
-     */
-    private Optional<VatValidation> findRecentValidation(String vatNumber) {
-        LocalDateTime threshold = LocalDateTime.now().minusHours(24);
-        return vatValidationRepository.findLatestByVatNumber(vatNumber, 
-            org.springframework.data.domain.PageRequest.of(0, 1))
-            .stream()
-            .filter(v -> v.getValidationDate().isAfter(threshold))
-            .findFirst();
-    }
-
-    /**
-     * Job planifié pour retenter les validations en échec
-     */
-    @Scheduled(fixedRate = 900000) // Toutes les 15 minutes
-    @Transactional
-    public void retryFailedValidations() {
-        List<VatValidation> retryable = vatValidationRepository.findRetryableValidations(
-            maxRetryAttempts, LocalDateTime.now());
-        
-        for (VatValidation validation : retryable) {
-            try {
-                log.info("Retry validation pour {}", maskVatNumber(validation.getVatNumber()));
-                String countryCode = validation.getCountryCode();
-                String vatNumberWithoutCountry = validation.getVatNumberWithoutCountry();
-                
-                ViesResponse response = executeViesRequest(countryCode, vatNumberWithoutCountry);
-                
-                if (response.isValid()) {
-                    validation.setValidationStatus(ValidationStatus.VALID);
-                    validation.setCompanyName(response.getCompanyName());
-                    validation.setCompanyAddress(response.getCompanyAddress());
-                } else {
-                    validation.setValidationStatus(ValidationStatus.INVALID);
-                }
-                validation.setValidationDate(LocalDateTime.now());
-                validation.setNextRetryAt(null);
-                vatValidationRepository.save(validation);
-                
-            } catch (ViesUnavailableException e) {
-                validation.setRetryCount(validation.getRetryCount() + 1);
-                validation.setNextRetryAt(LocalDateTime.now().plusMinutes(30));
-                vatValidationRepository.save(validation);
-            } catch (Exception e) {
-                log.error("Erreur retry validation: {}", e.getMessage());
-                validation.setValidationStatus(ValidationStatus.ERROR);
-                validation.setErrorMessage(e.getMessage());
-                vatValidationRepository.save(validation);
-            }
-        }
-    }
-
-    /**
-     * Validation asynchrone (ne bloque pas le checkout)
-     */
-    @Async
-    public void validateVatNumberAsync(Shop shop, String vatNumber, String shopifyOrderId) {
-        try {
-            validateVatNumber(shop, vatNumber, shopifyOrderId);
-        } catch (Exception e) {
-            log.error("Erreur validation async: {}", e.getMessage());
-        }
-    }
-
-    // Méthodes utilitaires
-
-    private String normalizeVatNumber(String vatNumber) {
-        if (vatNumber == null) return "";
-        return vatNumber.toUpperCase().replaceAll("[^A-Z0-9]", "");
-    }
-
-    private String extractCountryCode(String vatNumber) {
-        if (vatNumber == null || vatNumber.length() < 2) return null;
-        String prefix = vatNumber.substring(0, 2);
-        // Cas spécial Grèce: EL -> GR
-        if ("EL".equals(prefix)) return "GR";
-        return EU_COUNTRY_CODES.contains(prefix) ? prefix : null;
-    }
-
-    private boolean isValidFormat(String countryCode, String vatNumber) {
-        Pattern pattern = VAT_PATTERNS.get(countryCode);
-        if (pattern == null) return true; // Accepter si pas de pattern défini
-        return pattern.matcher(vatNumber).matches();
-    }
-
-    private boolean isViesUnavailable(SOAPException e) {
-        String message = e.getMessage();
-        return message != null && (
-            message.contains("MS_UNAVAILABLE") ||
-            message.contains("SERVICE_UNAVAILABLE") ||
-            message.contains("timeout") ||
-            message.contains("Connection refused")
-        );
-    }
-
-    private String maskVatNumber(String vatNumber) {
-        if (vatNumber == null || vatNumber.length() < 6) return "***";
-        return vatNumber.substring(0, 4) + "***" + vatNumber.substring(vatNumber.length() - 2);
-    }
-
-    // Classes internes
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Nested Classes
+    //~ ------------------------------------------------------------------------------------------------
 
     private static class ViesResponse {
-        private boolean valid;
-        private String companyName;
-        private String companyAddress;
-        private String requestDate;
 
-        public boolean isValid() { return valid; }
-        public void setValid(boolean valid) { this.valid = valid; }
-        public String getCompanyName() { return companyName; }
-        public void setCompanyName(String companyName) { this.companyName = companyName; }
-        public String getCompanyAddress() { return companyAddress; }
-        public void setCompanyAddress(String companyAddress) { this.companyAddress = companyAddress; }
-        public String getRequestDate() { return requestDate; }
-        public void setRequestDate(String requestDate) { this.requestDate = requestDate; }
+        private String companyAddress;
+        private String companyName;
+        private String requestDate;
+        private boolean valid;
+
+        @Nullable
+        public String getCompanyAddress() {
+            return companyAddress;
+        }
+
+        public void setCompanyAddress(@Nullable String companyAddress) {
+            this.companyAddress = companyAddress;
+        }
+
+        @Nullable
+        public String getCompanyName() {
+            return companyName;
+        }
+
+        public void setCompanyName(@Nullable String companyName) {
+            this.companyName = companyName;
+        }
+
+        @Nullable
+        public String getRequestDate() {
+            return requestDate;
+        }
+
+        public void setRequestDate(@Nullable String requestDate) {
+            this.requestDate = requestDate;
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public void setValid(boolean valid) {
+            this.valid = valid;
+        }
 
         @Override
+        @Nonnull
         public String toString() {
             return String.format("ViesResponse{valid=%s, name='%s', address='%s', date='%s'}",
                 valid, companyName, companyAddress, requestDate);
@@ -431,7 +520,15 @@ public class ViesValidationService {
     }
 
     private static class ViesUnavailableException extends RuntimeException {
-        public ViesUnavailableException(String message) { super(message); }
-        public ViesUnavailableException(String message, Throwable cause) { super(message, cause); }
+
+        public ViesUnavailableException(@Nonnull String message) {
+            super(message);
+        }
+
+        public ViesUnavailableException(@Nonnull String message,
+                                        @Nonnull Throwable cause) {
+            super(message, cause);
+        }
     }
+
 }

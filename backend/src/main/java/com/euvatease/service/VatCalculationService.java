@@ -1,9 +1,17 @@
 package com.euvatease.service;
 
 import com.euvatease.dto.VatAnalysisResult;
-import com.euvatease.dto.VatValidationResult;
-import com.euvatease.entity.*;
-import com.euvatease.repository.*;
+import com.euvatease.entity.AuditLog;
+import com.euvatease.entity.Order;
+import com.euvatease.entity.Shop;
+import com.euvatease.entity.VatAlert;
+import com.euvatease.entity.VatValidation;
+import com.euvatease.repository.EuVatRateRepository;
+import com.euvatease.repository.OrderRepository;
+import com.euvatease.repository.VatAlertRepository;
+import com.euvatease.repository.VatValidationRepository;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -13,7 +21,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Service de calcul et d'analyse de la TVA UE.
@@ -22,23 +35,11 @@ import java.util.*;
 @Service
 public class VatCalculationService {
 
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Static fields/initializers
+    //~ ------------------------------------------------------------------------------------------------
+
     private static final Logger log = LoggerFactory.getLogger(VatCalculationService.class);
-
-    private final OrderRepository orderRepository;
-    private final EuVatRateRepository euVatRateRepository;
-    private final VatValidationRepository vatValidationRepository;
-    private final VatAlertRepository vatAlertRepository;
-    private final AuditLogService auditLogService;
-
-    public VatCalculationService(OrderRepository orderRepository, EuVatRateRepository euVatRateRepository,
-                                 VatValidationRepository vatValidationRepository, VatAlertRepository vatAlertRepository,
-                                 AuditLogService auditLogService) {
-        this.orderRepository = orderRepository;
-        this.euVatRateRepository = euVatRateRepository;
-        this.vatValidationRepository = vatValidationRepository;
-        this.vatAlertRepository = vatAlertRepository;
-        this.auditLogService = auditLogService;
-    }
 
     // Pays UE
     private static final Set<String> EU_COUNTRIES = Set.of(
@@ -47,11 +48,51 @@ public class VatCalculationService {
         "PL", "PT", "RO", "SK", "SI", "ES", "SE"
     );
 
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Instance fields
+    //~ ------------------------------------------------------------------------------------------------
+
+    @Nonnull
+    private final AuditLogService auditLogService;
+
+    @Nonnull
+    private final EuVatRateRepository euVatRateRepository;
+
+    @Nonnull
+    private final OrderRepository orderRepository;
+
+    @Nonnull
+    private final VatAlertRepository vatAlertRepository;
+
+    @Nonnull
+    private final VatValidationRepository vatValidationRepository;
+
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Constructors
+    //~ ------------------------------------------------------------------------------------------------
+
+    public VatCalculationService(@Nonnull OrderRepository orderRepository,
+                                 @Nonnull EuVatRateRepository euVatRateRepository,
+                                 @Nonnull VatValidationRepository vatValidationRepository,
+                                 @Nonnull VatAlertRepository vatAlertRepository,
+                                 @Nonnull AuditLogService auditLogService) {
+        this.orderRepository = Objects.requireNonNull(orderRepository, "orderRepository must not be null");
+        this.euVatRateRepository = Objects.requireNonNull(euVatRateRepository, "euVatRateRepository must not be null");
+        this.vatValidationRepository = Objects.requireNonNull(vatValidationRepository, "vatValidationRepository must not be null");
+        this.vatAlertRepository = Objects.requireNonNull(vatAlertRepository, "vatAlertRepository must not be null");
+        this.auditLogService = Objects.requireNonNull(auditLogService, "auditLogService must not be null");
+    }
+
+    //~ ------------------------------------------------------------------------------------------------
+    //~ Methods
+    //~ ------------------------------------------------------------------------------------------------
+
     /**
      * Analyse une commande et calcule la TVA attendue
      */
     @Transactional
-    public VatAnalysisResult analyzeOrder(Order order) {
+    @Nonnull
+    public VatAnalysisResult analyzeOrder(@Nonnull Order order) {
         VatAnalysisResult result = new VatAnalysisResult();
         result.setOrderId(order.getId());
         result.setShopifyOrderId(order.getShopifyOrderId());
@@ -108,57 +149,15 @@ public class VatCalculationService {
     }
 
     /**
-     * Vérifie si une commande a des erreurs de TVA
-     */
-    @Transactional
-    public Order detectVatErrors(Order order) {
-        VatAnalysisResult analysis = analyzeOrder(order);
-        
-        BigDecimal appliedRate = order.getAppliedVatRate();
-        BigDecimal expectedRate = analysis.getExpectedVatRate();
-        
-        if (appliedRate == null) appliedRate = BigDecimal.ZERO;
-        if (expectedRate == null) expectedRate = BigDecimal.ZERO;
-
-        // Calculer la TVA attendue
-        BigDecimal subtotal = order.getSubtotalAmount() != null ? order.getSubtotalAmount() : BigDecimal.ZERO;
-        BigDecimal calculatedVat = subtotal.multiply(expectedRate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        
-        order.setExpectedVatRate(expectedRate);
-        order.setCalculatedVatAmount(calculatedVat);
-
-        // Détecter les erreurs
-        BigDecimal difference = appliedRate.subtract(expectedRate).abs();
-        boolean hasError = difference.compareTo(BigDecimal.valueOf(0.5)) > 0; // Tolérance de 0.5%
-
-        order.setHasVatError(hasError);
-        
-        if (hasError) {
-            String errorType = determineErrorType(appliedRate, expectedRate, order);
-            order.setVatErrorType(errorType);
-            
-            // Calculer la différence de TVA
-            BigDecimal actualVat = order.getTaxAmount() != null ? order.getTaxAmount() : BigDecimal.ZERO;
-            order.setVatDifference(calculatedVat.subtract(actualVat));
-            
-            log.warn("Erreur TVA détectée: order={}, appliqué={}%, attendu={}%, type={}",
-                order.getOrderNumber(), appliedRate, expectedRate, errorType);
-        }
-
-        // Mise à jour exonération
-        order.setVatExempt(analysis.isVatExempt());
-        order.setVatExemptReason(analysis.getExemptionReason());
-
-        return orderRepository.save(order);
-    }
-
-    /**
      * Analyse toutes les commandes d'une boutique sur une période
      */
     @Transactional
-    public Map<String, Object> analyzeShopVat(Shop shop, LocalDateTime start, LocalDateTime end) {
+    @Nonnull
+    public Map<String, Object> analyzeShopVat(@Nonnull Shop shop,
+                                              @Nonnull LocalDateTime start,
+                                              @Nonnull LocalDateTime end) {
         List<Order> orders = orderRepository.findByShopAndOrderDateBetween(shop, start, end);
-        
+
         Map<String, Object> analysis = new HashMap<>();
         int totalOrders = orders.size();
         int errorsCount = 0;
@@ -171,7 +170,7 @@ public class VatCalculationService {
 
         for (Order order : orders) {
             detectVatErrors(order);
-            
+
             if (Boolean.TRUE.equals(order.getHasVatError())) {
                 errorsCount++;
                 errors.add(Map.of(
@@ -219,12 +218,15 @@ public class VatCalculationService {
      * Vérifie le seuil OSS pour une boutique
      */
     @Transactional
-    public Map<String, Object> checkOssThreshold(Shop shop) {
+    @Nonnull
+    public Map<String, Object> checkOssThreshold(@Nonnull Shop shop) {
         String homeCountry = shop.getCountryCode();
         LocalDateTime yearStart = LocalDateTime.now().withDayOfYear(1).withHour(0).withMinute(0).withSecond(0);
-        
+
         BigDecimal euSales = orderRepository.sumEuSalesForOssThreshold(shop, homeCountry, yearStart);
-        if (euSales == null) euSales = BigDecimal.ZERO;
+        if (euSales == null) {
+            euSales = BigDecimal.ZERO;
+        }
 
         BigDecimal threshold = BigDecimal.valueOf(10000);
         BigDecimal percentage = euSales.multiply(BigDecimal.valueOf(100)).divide(threshold, 2, RoundingMode.HALF_UP);
@@ -248,21 +250,63 @@ public class VatCalculationService {
     }
 
     /**
-     * Obtient le taux de TVA standard pour un pays
+     * Vérifie si une commande a des erreurs de TVA
      */
-    public BigDecimal getStandardVatRate(String countryCode) {
-        if (countryCode == null) return BigDecimal.ZERO;
-        return euVatRateRepository.findStandardRateByCountryCode(countryCode, LocalDate.now())
-            .orElse(BigDecimal.ZERO);
+    @Transactional
+    @Nonnull
+    public Order detectVatErrors(@Nonnull Order order) {
+        VatAnalysisResult analysis = analyzeOrder(order);
+
+        BigDecimal appliedRate = order.getAppliedVatRate();
+        BigDecimal expectedRate = analysis.getExpectedVatRate();
+
+        if (appliedRate == null) {
+            appliedRate = BigDecimal.ZERO;
+        }
+        if (expectedRate == null) {
+            expectedRate = BigDecimal.ZERO;
+        }
+
+        // Calculer la TVA attendue
+        BigDecimal subtotal = order.getSubtotalAmount() != null ? order.getSubtotalAmount() : BigDecimal.ZERO;
+        BigDecimal calculatedVat = subtotal.multiply(expectedRate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        order.setExpectedVatRate(expectedRate);
+        order.setCalculatedVatAmount(calculatedVat);
+
+        // Détecter les erreurs
+        BigDecimal difference = appliedRate.subtract(expectedRate).abs();
+        boolean hasError = difference.compareTo(BigDecimal.valueOf(0.5)) > 0; // Tolérance de 0.5%
+
+        order.setHasVatError(hasError);
+
+        if (hasError) {
+            String errorType = determineErrorType(appliedRate, expectedRate, order);
+            order.setVatErrorType(errorType);
+
+            // Calculer la différence de TVA
+            BigDecimal actualVat = order.getTaxAmount() != null ? order.getTaxAmount() : BigDecimal.ZERO;
+            order.setVatDifference(calculatedVat.subtract(actualVat));
+
+            log.warn("Erreur TVA détectée: order={}, appliqué={}%, attendu={}%, type={}",
+                order.getOrderNumber(), appliedRate, expectedRate, errorType);
+        }
+
+        // Mise à jour exonération
+        order.setVatExempt(analysis.isVatExempt());
+        order.setVatExemptReason(analysis.getExemptionReason());
+
+        return orderRepository.save(order);
     }
 
     /**
      * Obtient tous les taux de TVA UE actuels
      */
+    @Nonnull
     public List<Map<String, Object>> getAllEuVatRates() {
         var rates = euVatRateRepository.findAllEuCountries(LocalDate.now());
         List<Map<String, Object>> result = new ArrayList<>();
-        
+
         for (var rate : rates) {
             Map<String, Object> rateMap = new HashMap<>();
             rateMap.put("countryCode", rate.getCountryCode());
@@ -271,42 +315,62 @@ public class VatCalculationService {
             rateMap.put("reducedRate", rate.getReducedRate());
             result.add(rateMap);
         }
-        
+
         return result;
     }
 
-    // Méthodes privées
-
-    private boolean hasValidVatNumber(Order order) {
-        if (order.getCustomerVatNumber() == null || order.getCustomerVatNumber().isEmpty()) {
-            return false;
+    /**
+     * Obtient le taux de TVA standard pour un pays
+     */
+    @Nonnull
+    public BigDecimal getStandardVatRate(@Nullable String countryCode) {
+        if (countryCode == null) {
+            return BigDecimal.ZERO;
         }
-
-        // Vérifier si une validation VIES existe
-        List<VatValidation> validations = vatValidationRepository.findByOrderId(order.getId());
-        return validations.stream()
-            .anyMatch(v -> v.getValidationStatus() == VatValidation.ValidationStatus.VALID);
+        return euVatRateRepository.findStandardRateByCountryCode(countryCode, LocalDate.now())
+            .orElse(BigDecimal.ZERO);
     }
 
-    private String determineErrorType(BigDecimal applied, BigDecimal expected, Order order) {
-        if (applied == null || applied.compareTo(BigDecimal.ZERO) == 0) {
-            if (expected.compareTo(BigDecimal.ZERO) > 0) {
-                return "VAT_MISSING";
-            }
-        }
-        
-        if (applied.compareTo(expected) > 0) {
-            return "VAT_OVERCHARGED";
-        }
-        
-        if (applied.compareTo(expected) < 0) {
-            return "VAT_UNDERCHARGED";
-        }
-        
-        return "VAT_WRONG_COUNTRY";
+    private void createOssThresholdAlert(@Nonnull Shop shop,
+                                         @Nonnull BigDecimal euSales,
+                                         @Nonnull BigDecimal percentage,
+                                         boolean exceeded) {
+        VatAlert.AlertType type = exceeded ?
+            VatAlert.AlertType.OSS_THRESHOLD_EXCEEDED :
+            VatAlert.AlertType.OSS_THRESHOLD_WARNING;
+
+        String title = exceeded ?
+            "Seuil OSS dépassé !" :
+            "Vous approchez du seuil OSS";
+
+        String message = exceeded ?
+            String.format("Vos ventes UE (%.2f €) ont dépassé le seuil de 10 000 €. " +
+                "Vous devez vous inscrire au régime OSS.", euSales) :
+            String.format("Vos ventes UE atteignent %.1f%% du seuil OSS (10 000 €). " +
+                "Préparez-vous à l'inscription OSS.", percentage);
+
+        VatAlert alert = VatAlert.builder()
+            .shop(shop)
+            .alertType(type)
+            .severity(exceeded ? VatAlert.Severity.CRITICAL : VatAlert.Severity.WARNING)
+            .title(title)
+            .message(message)
+            .actionRequired(exceeded ?
+                "Inscrivez-vous au régime OSS auprès de votre administration fiscale" :
+                "Préparez votre inscription au régime OSS")
+            .build();
+
+        vatAlertRepository.save(alert);
+
+        shop.setOssThresholdAlertSent(true);
+
+        auditLogService.log(shop, AuditLog.ActionType.ALERT_CREATED, "VatAlert", alert.getId(),
+            "Alerte seuil OSS créée: " + percentage + "%");
     }
 
-    private void createVatErrorAlert(Shop shop, int errorCount, List<Map<String, Object>> errors) {
+    private void createVatErrorAlert(@Nonnull Shop shop,
+                                     int errorCount,
+                                     @Nonnull List<Map<String, Object>> errors) {
         // Vérifier si une alerte similaire existe déjà
         if (vatAlertRepository.existsByShopAndAlertTypeAndIsResolvedFalse(shop, VatAlert.AlertType.VAT_RATE_ERROR)) {
             return;
@@ -326,37 +390,35 @@ public class VatCalculationService {
         log.info("Alerte TVA créée pour shop={}", shop.getShopifyDomain());
     }
 
-    private void createOssThresholdAlert(Shop shop, BigDecimal euSales, BigDecimal percentage, boolean exceeded) {
-        VatAlert.AlertType type = exceeded ? 
-            VatAlert.AlertType.OSS_THRESHOLD_EXCEEDED : 
-            VatAlert.AlertType.OSS_THRESHOLD_WARNING;
+    @Nonnull
+    private String determineErrorType(@Nullable BigDecimal applied,
+                                      @Nonnull BigDecimal expected,
+                                      @Nonnull Order order) {
+        if (applied == null || applied.compareTo(BigDecimal.ZERO) == 0) {
+            if (expected.compareTo(BigDecimal.ZERO) > 0) {
+                return "VAT_MISSING";
+            }
+        }
 
-        String title = exceeded ? 
-            "Seuil OSS dépassé !" : 
-            "Vous approchez du seuil OSS";
+        if (applied.compareTo(expected) > 0) {
+            return "VAT_OVERCHARGED";
+        }
 
-        String message = exceeded ?
-            String.format("Vos ventes UE (%.2f €) ont dépassé le seuil de 10 000 €. " +
-                "Vous devez vous inscrire au régime OSS.", euSales) :
-            String.format("Vos ventes UE atteignent %.1f%% du seuil OSS (10 000 €). " +
-                "Préparez-vous à l'inscription OSS.", percentage);
+        if (applied.compareTo(expected) < 0) {
+            return "VAT_UNDERCHARGED";
+        }
 
-        VatAlert alert = VatAlert.builder()
-            .shop(shop)
-            .alertType(type)
-            .severity(exceeded ? VatAlert.Severity.CRITICAL : VatAlert.Severity.WARNING)
-            .title(title)
-            .message(message)
-            .actionRequired(exceeded ? 
-                "Inscrivez-vous au régime OSS auprès de votre administration fiscale" :
-                "Préparez votre inscription au régime OSS")
-            .build();
+        return "VAT_WRONG_COUNTRY";
+    }
 
-        vatAlertRepository.save(alert);
-        
-        shop.setOssThresholdAlertSent(true);
-        
-        auditLogService.log(shop, AuditLog.ActionType.ALERT_CREATED, "VatAlert", alert.getId(),
-            "Alerte seuil OSS créée: " + percentage + "%");
+    private boolean hasValidVatNumber(@Nonnull Order order) {
+        if (order.getCustomerVatNumber() == null || order.getCustomerVatNumber().isEmpty()) {
+            return false;
+        }
+
+        // Vérifier si une validation VIES existe
+        List<VatValidation> validations = vatValidationRepository.findByOrderId(order.getId());
+        return validations.stream()
+            .anyMatch(v -> v.getValidationStatus() == VatValidation.ValidationStatus.VALID);
     }
 }
